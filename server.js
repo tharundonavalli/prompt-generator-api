@@ -1,100 +1,144 @@
 const express = require("express");
-const bodyParser = require("body-parser");
 const crypto = require("crypto");
 const cors = require("cors");
 
 const app = express();
-const PORT = process.env.port || 3000;
-const RAZORPAY_SECRET = "promptstudio_secure_2129";
-const SUPABASE_URL = "https://evaskpthhzfynrplpqqd.supabase.co";
-const SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV2YXNrcHRoaHpmeW5ycGxwcXFkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTM4NTM5MywiZXhwIjoyMDkwOTYxMzkzfQ.K9vRRmjUB44sz4Nd4QsWBijocbe_xg26TJ1XOELeULU";
+const PORT = process.env.PORT || 3000;
+const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || "";
+const RAZORPAY_SECRET = process.env.RAZORPAY_SECRET || "";
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
+const PAYMENT_AMOUNT = 9900;
+const PAYMENT_CURRENCY = "INR";
 
-app.use(cors());
-app.use((req, res, next) => {
-  if (req.originalUrl === "/webhook") {
-    return next();
-  }
+app.use(cors({
+  origin: ALLOWED_ORIGIN === "*" ? true : ALLOWED_ORIGIN
+}));
+app.use(express.json());
 
-  return bodyParser.json()(req, res, next);
-});
+function getRazorpayAuthHeader() {
+  const credentials = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_SECRET}`).toString("base64");
+  return `Basic ${credentials}`;
+}
 
 app.get("/", (req, res) => {
   res.json({
-    status: "ok",
-    message: "PromptStudio AI webhook server is running."
+    ok: true,
+    message: "PromptStudio AI payment server is running."
   });
 });
 
-app.post("/webhook", bodyParser.raw({ type: "application/json" }), async (req, res) => {
-  const signature = req.headers["x-razorpay-signature"];
-  const rawBody = req.body;
+app.post("/create-order", async (req, res) => {
+  console.log("Creating Razorpay order");
 
-  if (!signature || !Buffer.isBuffer(rawBody)) {
-    console.log("Invalid webhook request");
-    return res.sendStatus(200);
+  if (!RAZORPAY_KEY_ID || !RAZORPAY_SECRET) {
+    console.error("Missing Razorpay environment variables");
+    return res.status(500).json({
+      success: false,
+      message: "Payment server is not configured."
+    });
   }
 
-  const expectedSignature = crypto
-    .createHmac("sha256", RAZORPAY_SECRET)
-    .update(rawBody)
-    .digest("hex");
+  try {
+    const razorpayResponse = await fetch("https://api.razorpay.com/v1/orders", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": getRazorpayAuthHeader()
+      },
+      body: JSON.stringify({
+        amount: PAYMENT_AMOUNT,
+        currency: PAYMENT_CURRENCY,
+        receipt: `promptstudio_${Date.now()}`
+      })
+    });
 
-  const isValidSignature = signature.length === expectedSignature.length
-    && crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
+    const data = await razorpayResponse.json();
 
-  if (isValidSignature) {
-    console.log("Payment verified");
-    try {
-      const payload = JSON.parse(rawBody.toString("utf8"));
-      const payment = payload && payload.payload && payload.payload.payment && payload.payload.payment.entity;
-      const userId = payment && payment.notes ? payment.notes.user_id : "";
-      const plan = payment && payment.notes ? payment.notes.plan : "";
-
-      if (!userId || !plan) {
-        console.log("Webhook missing user_id or plan");
-        return res.sendStatus(200);
-      }
-
-      const now = new Date();
-      let expiresAt;
-
-      if (plan === "basic") {
-        expiresAt = new Date(now.setDate(now.getDate() + 30));
-      } else {
-        expiresAt = new Date(now.setDate(now.getDate() + 90));
-      }
-
-      const supabaseResponse = await fetch(`${SUPABASE_URL}/rest/v1/subscriptions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "apikey": SUPABASE_SERVICE_KEY,
-          "Authorization": `Bearer ${SUPABASE_SERVICE_KEY}`
-        },
-        body: JSON.stringify({
-          user_id: userId,
-          plan,
-          status: "active",
-          expires_at: expiresAt.toISOString()
-        })
+    if (!razorpayResponse.ok) {
+      console.error("Razorpay order creation failed", data);
+      return res.status(500).json({
+        success: false,
+        message: data && data.error && data.error.description
+          ? data.error.description
+          : "Unable to create payment order."
       });
-
-      if (!supabaseResponse.ok) {
-        const errorText = await supabaseResponse.text();
-        console.log("Failed to save subscription from webhook", errorText);
-      } else {
-        console.log("Subscription saved from webhook");
-      }
-    } catch (error) {
-      console.log("Webhook processing failed", error);
     }
-  } else {
-    console.log("Invalid signature");
+
+    console.log("Razorpay order created", data.id);
+    return res.json({
+      success: true,
+      orderId: data.id,
+      amount: data.amount,
+      currency: data.currency
+    });
+  } catch (error) {
+    console.error("Create order error", error);
+    return res.status(500).json({
+      success: false,
+      message: "Payment server error."
+    });
+  }
+});
+
+app.post("/verify-payment", (req, res) => {
+  const {
+    razorpay_order_id: orderId,
+    razorpay_payment_id: paymentId,
+    razorpay_signature: signature
+  } = req.body || {};
+
+  console.log("Verifying payment", {
+    orderId,
+    paymentId
+  });
+
+  if (!orderId || !paymentId || !signature) {
+    return res.status(400).json({
+      success: false,
+      message: "Missing payment verification fields."
+    });
   }
 
-  return res.sendStatus(200);
+  if (!RAZORPAY_SECRET) {
+    console.error("Missing Razorpay secret");
+    return res.status(500).json({
+      success: false,
+      message: "Payment server is not configured."
+    });
+  }
+
+  try {
+    const payload = `${orderId}|${paymentId}`;
+    const expectedSignature = crypto
+      .createHmac("sha256", RAZORPAY_SECRET)
+      .update(payload)
+      .digest("hex");
+
+    const isValid = signature.length === expectedSignature.length
+      && crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
+
+    if (!isValid) {
+      console.error("Payment verification failed");
+      return res.status(400).json({
+        success: false,
+        message: "Payment verification failed."
+      });
+    }
+
+    console.log("Payment verified successfully");
+    return res.json({
+      success: true,
+      message: "Payment verified successfully."
+    });
+  } catch (error) {
+    console.error("Verify payment error", error);
+    return res.status(500).json({
+      success: false,
+      message: "Verification server error."
+    });
+  }
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });

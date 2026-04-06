@@ -2101,6 +2101,12 @@ Then continue with the existing cinematic instructions in Shorts format by break
     const OLLAMA_BASE_URL = "http://localhost:11434/api";
     const REQUEST_TIMEOUT_MS = 25000;
     const RAZORPAY_KEY = "rzp_test_Sa8QGpqjmZZoeU";
+    const PAYMENT_FLAG_KEY = "paidUser";
+    const PAYMENT_AMOUNT = 9900;
+    const PAYMENT_CURRENCY = "INR";
+    const PAYMENT_SERVER_URL = window.location.hostname === "localhost" || window.location.protocol === "file:"
+      ? "http://localhost:3000"
+      : "https://prompt-generator-api-wir5.onrender.com";
     let currentStep = 1;
 
     const state = {
@@ -2334,6 +2340,26 @@ Then continue with the existing cinematic instructions in Shorts format by break
       updateUserChrome();
       if (!accountModal.hidden) {
         renderAccountView(state.accountView);
+      }
+    }
+
+    function isPaidUser() {
+      try {
+        return window.localStorage.getItem(PAYMENT_FLAG_KEY) === "true";
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function setPaidUserStatus(isPaid) {
+      try {
+        if (isPaid) {
+          window.localStorage.setItem(PAYMENT_FLAG_KEY, "true");
+        } else {
+          window.localStorage.removeItem(PAYMENT_FLAG_KEY);
+        }
+      } catch (error) {
+        // Ignore localStorage issues and keep checkout usable.
       }
     }
 
@@ -2665,6 +2691,12 @@ Then continue with the existing cinematic instructions in Shorts format by break
     }
 
     async function checkSubscription() {
+      if (isPaidUser()) {
+        enablePremium();
+        console.log("Premium restored from localStorage payment flag");
+        return;
+      }
+
       try {
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (!user) {
@@ -2716,6 +2748,110 @@ Then continue with the existing cinematic instructions in Shorts format by break
       } catch (error) {
         console.error(error);
         disablePremium();
+      }
+    }
+
+    async function startPayment() {
+      console.log("Starting Razorpay payment flow");
+
+      try {
+        if (typeof Razorpay !== "function") {
+          throw new Error("Razorpay checkout failed to load.");
+        }
+
+        const orderResponse = await fetch(`${PAYMENT_SERVER_URL}/create-order`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            amount: PAYMENT_AMOUNT,
+            currency: PAYMENT_CURRENCY
+          })
+        });
+
+        const orderData = await orderResponse.json().catch(() => ({}));
+        if (!orderResponse.ok || !orderData.orderId) {
+          throw new Error(orderData.message || "Unable to start payment.");
+        }
+
+        const paymentSucceeded = await new Promise((resolve, reject) => {
+          let settled = false;
+          const finish = (callback, value) => {
+            if (settled) {
+              return;
+            }
+
+            settled = true;
+            callback(value);
+          };
+
+          const razorpay = new Razorpay({
+            key: RAZORPAY_KEY,
+            amount: orderData.amount || PAYMENT_AMOUNT,
+            currency: orderData.currency || PAYMENT_CURRENCY,
+            name: "PromptStudio AI",
+            description: "PromptStudio AI Access",
+            order_id: orderData.orderId,
+            handler: async function (response) {
+              console.log("Razorpay payment success", response);
+
+              try {
+                const verifyResponse = await fetch(`${PAYMENT_SERVER_URL}/verify-payment`, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json"
+                  },
+                  body: JSON.stringify(response)
+                });
+
+                const verifyData = await verifyResponse.json().catch(() => ({}));
+                if (!verifyResponse.ok || !verifyData.success) {
+                  throw new Error(verifyData.message || "Payment verification failed.");
+                }
+
+                setPaidUserStatus(true);
+                enablePremium();
+                showToast("Payment successful");
+                console.log("Payment verified successfully");
+                finish(resolve, true);
+              } catch (error) {
+                console.error("Payment verification error", error);
+                finish(reject, error instanceof Error ? error : new Error("Payment verification failed."));
+              }
+            },
+            modal: {
+              ondismiss: function () {
+                console.log("Razorpay checkout closed");
+                finish(reject, new Error("Payment cancelled."));
+              }
+            }
+          });
+
+          razorpay.on("payment.failed", (response) => {
+            console.error("Razorpay payment failed", response && response.error ? response.error : response);
+            finish(reject, new Error(
+              response && response.error && response.error.description
+                ? response.error.description
+                : "Payment failed."
+            ));
+          });
+
+          razorpay.open();
+        });
+
+        return paymentSucceeded;
+      } catch (error) {
+        console.error("startPayment error", error);
+        const message = error instanceof Error ? error.message : "Unable to complete payment.";
+
+        if (message === "Payment cancelled.") {
+          showToast("Payment cancelled");
+        } else {
+          showError(message);
+        }
+
+        return false;
       }
     }
 
@@ -3786,8 +3922,19 @@ Then continue with the existing cinematic instructions in Shorts format by break
       }
     }
 
+    async function generatePrompt() {
+      if (!isPaidUser()) {
+        const paymentCompleted = await startPayment();
+        if (!paymentCompleted) {
+          return;
+        }
+      }
+
+      await handleGenerateScenes();
+    }
+
     improveBtn.addEventListener("click", handleImproveIdea);
-    generateBtn.addEventListener("click", handleGenerateScenes);
+    generateBtn.addEventListener("click", generatePrompt);
     showLoginBtn.addEventListener("click", () => {
       setAuthMode("login");
       loginEmailInput.focus();
