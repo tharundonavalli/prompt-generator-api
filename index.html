@@ -1,0 +1,3886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PromptStudio AI - YouTube Prompt Generator</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap");
+
+    :root {
+      --bg: #eef7ff;
+      --bg-elevated: rgba(255, 255, 255, 0.74);
+      --surface: rgba(255, 255, 255, 0.82);
+      --surface-strong: rgba(255, 255, 255, 0.94);
+      --surface-soft: rgba(255, 255, 255, 0.58);
+      --stroke: rgba(102, 139, 176, 0.18);
+      --stroke-strong: rgba(102, 139, 176, 0.28);
+      --text: #16324a;
+      --text-muted: #61788f;
+      --text-soft: #23425d;
+      --accent: #3d8dff;
+      --accent-strong: #2f72e3;
+      --accent-warm: #ffb877;
+      --success: #1b8b65;
+      --danger: #d15866;
+      --shadow-lg: 0 28px 72px rgba(74, 114, 155, 0.16);
+      --shadow-md: 0 16px 38px rgba(74, 114, 155, 0.12);
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+      --container: 1240px;
+      --transition: 220ms cubic-bezier(.2,.8,.2,1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Manrope", "Segoe UI Variable", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 14% 18%, rgba(61, 141, 255, 0.14), transparent 28%),
+        radial-gradient(circle at 84% 16%, rgba(255, 184, 119, 0.12), transparent 24%),
+        radial-gradient(circle at 52% 80%, rgba(61, 141, 255, 0.08), transparent 36%),
+        linear-gradient(135deg, #eef7ff 0%, #f5fbff 52%, #f8fcff 100%);
+      overflow-x: hidden;
+    }
+
+    body.app-locked {
+      overflow: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(39, 85, 125, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(39, 85, 125, 0.03) 1px, transparent 1px);
+      background-size: 72px 72px;
+      mask-image: radial-gradient(circle at center, black 30%, transparent 90%);
+      opacity: 0.55;
+    }
+
+    .shell {
+      width: min(var(--container), calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 64px;
+      position: relative;
+    }
+
+    .login-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at top, rgba(61, 141, 255, 0.12), transparent 34%),
+        radial-gradient(circle at bottom, rgba(255, 184, 119, 0.1), transparent 30%),
+        rgba(238, 247, 255, 0.88);
+      backdrop-filter: blur(20px);
+    }
+
+    .login-card {
+      width: min(100%, 420px);
+      padding: 32px;
+      border-radius: calc(var(--radius-xl) + 4px);
+      border: 1px solid var(--stroke);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.92), rgba(248,252,255,0.86)),
+        rgba(255, 255, 255, 0.9);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .login-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+      padding: 9px 13px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(255, 255, 255, 0.76);
+      color: var(--text-soft);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .login-kicker::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), white);
+      box-shadow: 0 0 16px rgba(133, 216, 255, 0.5);
+    }
+
+    .login-title {
+      margin: 0;
+      font-family: "Space Grotesk", "Manrope", sans-serif;
+      font-size: clamp(1.9rem, 4vw, 2.4rem);
+      letter-spacing: -0.04em;
+    }
+
+    .login-copy {
+      margin: 14px 0 22px;
+      color: var(--text-muted);
+      line-height: 1.7;
+      font-size: 0.96rem;
+    }
+
+    .login-actions {
+      display: grid;
+      gap: 12px;
+    }
+
+    .login-error {
+      min-height: 22px;
+      color: var(--danger);
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .auth-switch {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .auth-switch-btn {
+      appearance: none;
+      border: 1px solid var(--stroke);
+      background: rgba(255, 255, 255, 0.76);
+      color: var(--text-muted);
+      border-radius: 14px;
+      padding: 12px 14px;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background var(--transition), color var(--transition), border-color var(--transition), transform var(--transition);
+    }
+
+    .auth-switch-btn:hover {
+      transform: translateY(-1px);
+      border-color: var(--stroke-strong);
+    }
+
+    .auth-switch-btn.active {
+      color: var(--accent-strong);
+      background: rgba(61, 141, 255, 0.08);
+      border-color: rgba(61, 141, 255, 0.18);
+    }
+
+    .topbar {
+      position: relative;
+      z-index: 1200;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+      padding: 14px 18px;
+      border-radius: 24px;
+      border: 1px solid var(--stroke);
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(18px);
+      box-shadow: var(--shadow-md);
+      overflow: visible;
+    }
+
+    .progress-shell {
+      position: relative;
+      z-index: 1100;
+      margin-bottom: 20px;
+      padding: 18px 20px;
+      border-radius: 24px;
+      border: 1px solid var(--stroke);
+      background: rgba(255, 255, 255, 0.72);
+      box-shadow: var(--shadow-md);
+      backdrop-filter: blur(18px);
+    }
+
+    .progress-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .progress-step {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      text-align: center;
+      color: rgba(97, 120, 143, 0.72);
+    }
+
+    .progress-step::after {
+      content: "";
+      position: absolute;
+      top: 20px;
+      left: calc(50% + 24px);
+      width: calc(100% - 48px);
+      height: 2px;
+      background: rgba(102, 139, 176, 0.22);
+    }
+
+    .progress-step:last-child::after {
+      display: none;
+    }
+
+    .progress-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      border: 2px solid rgba(102, 139, 176, 0.22);
+      background: rgba(255, 255, 255, 0.86);
+      color: var(--text-muted);
+      font-family: "Space Grotesk", "Manrope", sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      transition: background var(--transition), border-color var(--transition), color var(--transition), box-shadow var(--transition), transform var(--transition);
+    }
+
+    .progress-label {
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: inherit;
+    }
+
+    .progress-step.completed {
+      color: var(--accent-strong);
+    }
+
+    .progress-step.completed .progress-circle {
+      border-color: rgba(61, 141, 255, 0.26);
+      background: rgba(61, 141, 255, 0.14);
+      color: var(--accent-strong);
+    }
+
+    .progress-step.completed::after {
+      background: rgba(61, 141, 255, 0.34);
+    }
+
+    .progress-step.active {
+      color: var(--text-soft);
+    }
+
+    .progress-step.active .progress-circle {
+      border-color: #3b82f6;
+      background: rgba(59, 130, 246, 0.12);
+      color: #2563eb;
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.22);
+      transform: scale(1.03);
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 46px;
+      height: 46px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, rgba(61, 141, 255, 0.18), rgba(255, 184, 119, 0.22));
+      border: 1px solid rgba(61, 141, 255, 0.12);
+      color: var(--accent-strong);
+      font-family: "Space Grotesk", "Manrope", sans-serif;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+    }
+
+    .brand-copy {
+      min-width: 0;
+    }
+
+    .brand-copy strong,
+    .brand-copy span {
+      display: block;
+    }
+
+    .brand-copy strong {
+      font-size: 0.98rem;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+
+    .brand-copy span {
+      margin-top: 4px;
+      color: var(--text-muted);
+      font-size: 0.86rem;
+    }
+
+    .topbar-actions {
+      position: relative;
+      z-index: 1201;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      overflow: visible;
+    }
+
+    .header-chip {
+      white-space: nowrap;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(255, 255, 255, 0.68);
+      color: var(--text-soft);
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .profile-menu {
+      position: relative;
+      z-index: 1202;
+      overflow: visible;
+      flex-shrink: 0;
+    }
+
+    .profile-button {
+      appearance: none;
+      border: 1px solid var(--stroke);
+      background: rgba(255, 255, 255, 0.7);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 8px 10px 8px 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+      box-shadow: 0 12px 24px rgba(74, 114, 155, 0.08);
+    }
+
+    .profile-button:hover {
+      transform: translateY(-1px);
+      border-color: var(--stroke-strong);
+    }
+
+    .profile-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--accent), var(--accent-warm));
+      color: white;
+      font-size: 0.88rem;
+      font-weight: 800;
+    }
+
+    .profile-label {
+      color: var(--text-soft);
+      font-size: 0.9rem;
+    }
+
+    .profile-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      z-index: 9999;
+      margin-top: 10px;
+      min-width: 220px;
+      max-width: min(260px, calc(100vw - 32px));
+      padding: 10px;
+      border-radius: 18px;
+      border: 1px solid rgba(102, 139, 176, 0.22);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(240, 248, 255, 0.96));
+      box-shadow: 0 22px 44px rgba(74, 114, 155, 0.22);
+      display: grid;
+      gap: 6px;
+      backdrop-filter: blur(18px);
+      pointer-events: auto;
+    }
+
+    .dropdown-item {
+      appearance: none;
+      border: none;
+      background: transparent;
+      color: var(--text-soft);
+      border-radius: 12px;
+      padding: 11px 12px;
+      text-align: left;
+      font: inherit;
+      font-size: 0.92rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background var(--transition), color var(--transition), transform var(--transition);
+    }
+
+    .dropdown-item:hover {
+      background: rgba(61, 141, 255, 0.1);
+      color: var(--accent-strong);
+      transform: translateX(2px);
+    }
+
+    .dropdown-danger:hover {
+      background: rgba(209, 88, 102, 0.08);
+      color: var(--danger);
+    }
+
+    .hero,
+    .panel-grid,
+    .results-shell,
+    .section-shell {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero {
+      position: relative;
+      display: grid;
+      gap: 28px;
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+      padding: 30px;
+      border: 1px solid var(--stroke);
+      border-radius: calc(var(--radius-xl) + 4px);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.86), rgba(248,252,255,0.72)),
+        rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(24px);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 1px;
+      border-radius: inherit;
+      background:
+        radial-gradient(circle at top right, rgba(61, 141, 255, 0.12), transparent 32%),
+        radial-gradient(circle at bottom left, rgba(255, 184, 119, 0.1), transparent 28%);
+      pointer-events: none;
+    }
+
+    .hero-copy {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 18px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-soft);
+      font-size: 0.85rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), white);
+      box-shadow: 0 0 16px rgba(133, 216, 255, 0.55);
+    }
+
+    h1 {
+      margin: 0;
+      font-family: "Space Grotesk", "Manrope", sans-serif;
+      font-size: clamp(2rem, 4.8vw, 3.2rem);
+      line-height: 1.04;
+      letter-spacing: -0.04em;
+    }
+
+    .hero h1 span {
+      display: inline-block;
+      background: linear-gradient(135deg, #123451 0%, #2f72e3 56%, #6b8ec4 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 680px;
+      color: var(--text-muted);
+      font-size: 1.02rem;
+      line-height: 1.7;
+    }
+
+    .hero-note {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .note-card {
+      padding: 18px;
+      border-radius: var(--radius-lg);
+      background: rgba(255, 255, 255, 0.64);
+      border: 1px solid var(--stroke);
+      min-height: 132px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 14px;
+      transition: transform var(--transition), border-color var(--transition), background var(--transition);
+    }
+
+    .note-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(61, 141, 255, 0.24);
+      background: rgba(255, 255, 255, 0.82);
+    }
+
+    .note-card strong {
+      font-size: 0.92rem;
+      color: var(--text);
+    }
+
+    .note-card span {
+      color: var(--text-muted);
+      line-height: 1.55;
+      font-size: 0.94rem;
+    }
+
+    .panel-grid {
+      margin-top: 28px;
+      display: grid;
+      gap: 22px;
+      grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+      align-items: start;
+    }
+
+    .panel,
+    .results-shell {
+      background: var(--bg-elevated);
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-md);
+      backdrop-filter: blur(18px);
+    }
+
+    .panel {
+      padding: 26px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .panel-title {
+      margin: 0 0 6px;
+      font-size: 1.25rem;
+      letter-spacing: -0.03em;
+    }
+
+    .panel-subtitle {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 0.94rem;
+      line-height: 1.6;
+    }
+
+    .secure-chip {
+      white-space: nowrap;
+      padding: 10px 12px;
+      border-radius: 999px;
+      background: rgba(133, 243, 195, 0.08);
+      border: 1px solid rgba(133, 243, 195, 0.16);
+      color: var(--success);
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .control-block + .control-block {
+      margin-top: 22px;
+    }
+
+    .control-block-emphasis {
+      padding: 18px;
+      border-radius: calc(var(--radius-lg) + 2px);
+      border: 1px solid rgba(61, 141, 255, 0.2);
+      background: linear-gradient(180deg, rgba(61, 141, 255, 0.08), rgba(255, 255, 255, 0.78));
+      box-shadow: 0 12px 28px rgba(74, 114, 155, 0.08);
+    }
+
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 10px;
+      color: var(--text-soft);
+      font-weight: 700;
+      font-size: 0.92rem;
+      letter-spacing: 0.01em;
+    }
+
+    .control-hint {
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+
+    .api-helper {
+      margin: 10px 0 0;
+      display: grid;
+      gap: 4px;
+      color: var(--text-muted);
+      font-size: 0.86rem;
+      line-height: 1.6;
+    }
+
+    .step-helper {
+      margin-top: 8px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .inline-link,
+    .support-link {
+      color: var(--accent-strong);
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    .inline-link:hover,
+    .support-link:hover {
+      text-decoration: underline;
+    }
+
+    .field,
+    .textarea {
+      width: 100%;
+      border: 1px solid var(--stroke);
+      background: rgba(255, 255, 255, 0.82);
+      color: var(--text);
+      border-radius: 18px;
+      padding: 16px 18px;
+      font: inherit;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition), background var(--transition), transform var(--transition);
+    }
+
+    .field::placeholder,
+    .textarea::placeholder {
+      color: rgba(97, 120, 143, 0.6);
+    }
+
+    .field.is-valid {
+      border-color: rgba(27, 139, 101, 0.34);
+      box-shadow: 0 0 0 6px rgba(27, 139, 101, 0.08);
+    }
+
+    .field.shake {
+      animation: shakeX 380ms ease;
+    }
+
+    .field:focus,
+    .textarea:focus {
+      border-color: rgba(61, 141, 255, 0.36);
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 0 0 6px rgba(61, 141, 255, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .textarea {
+      min-height: 180px;
+      resize: vertical;
+      line-height: 1.7;
+    }
+
+    .textarea.is-typing {
+      border-color: rgba(61, 141, 255, 0.3);
+      box-shadow: 0 0 0 6px rgba(61, 141, 255, 0.06);
+    }
+
+    .option-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .option-group {
+      padding: 16px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--stroke);
+      background: rgba(255, 255, 255, 0.62);
+    }
+
+    .option-group h3 {
+      margin: 0 0 12px;
+      font-size: 0.95rem;
+      letter-spacing: -0.02em;
+    }
+
+    .option-set {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .option-pill {
+      appearance: none;
+      border: 1px solid var(--stroke);
+      background: rgba(255, 255, 255, 0.76);
+      color: var(--text-muted);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font: inherit;
+      font-size: 0.92rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform var(--transition), border-color var(--transition), background var(--transition), color var(--transition), box-shadow var(--transition);
+    }
+
+    .option-pill:hover {
+      transform: translateY(-2px);
+      border-color: rgba(61, 141, 255, 0.26);
+      color: var(--text-soft);
+    }
+
+    .option-pill.active {
+      color: #081018;
+      background: linear-gradient(135deg, #f2f7ff 0%, #9adfff 60%, #ffd0a9 100%);
+      border-color: transparent;
+      box-shadow: 0 12px 30px rgba(133, 216, 255, 0.2);
+      transform: scale(1.05);
+    }
+
+    .option-pill:active {
+      transform: scale(1.05);
+    }
+
+    .prompt-preview {
+      margin-top: 16px;
+      padding: 18px;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(61, 141, 255, 0.14);
+      background: linear-gradient(180deg, rgba(61, 141, 255, 0.08), rgba(255, 255, 255, 0.68));
+    }
+
+    .prompt-preview strong {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 0.92rem;
+    }
+
+    .prompt-preview p {
+      margin: 0;
+      color: var(--text-soft);
+      line-height: 1.65;
+      font-size: 0.94rem;
+      white-space: pre-line;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 22px;
+    }
+
+    .button {
+      appearance: none;
+      border: none;
+      border-radius: 18px;
+      padding: 15px 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font: inherit;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      cursor: pointer;
+      transition: transform var(--transition), box-shadow var(--transition), opacity var(--transition), background var(--transition), color var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .button::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, transparent, rgba(255,255,255,0.16), transparent);
+      transform: translateX(-110%);
+      transition: transform 700ms ease;
+    }
+
+    .button:hover::after {
+      transform: translateX(110%);
+    }
+
+    .button:hover:not(:disabled) {
+      transform: translateY(-2px);
+    }
+
+    .button:active:not(:disabled) {
+      transform: translateY(0) scale(0.98);
+    }
+
+    .button:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .button.loading {
+      gap: 10px;
+    }
+
+    .button-spinner {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 2px solid rgba(19, 52, 81, 0.18);
+      border-top-color: var(--accent-strong);
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+
+    .button-primary {
+      background: linear-gradient(135deg, #ffffff 0%, #9fd3ff 58%, #ffd5ae 100%);
+      color: #133451;
+      box-shadow: 0 16px 30px rgba(61, 141, 255, 0.16);
+    }
+
+    .button-secondary {
+      background: rgba(255, 255, 255, 0.78);
+      color: var(--text);
+      border: 1px solid var(--stroke);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.38);
+    }
+
+    .status-stack {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .provider-bar {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid rgba(61, 141, 255, 0.12);
+      background: rgba(61, 141, 255, 0.06);
+    }
+
+    .provider-kicker {
+      color: var(--text-muted);
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .provider-text {
+      color: var(--text-soft);
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .provider-bar[data-state="active"] {
+      background: rgba(133, 243, 195, 0.08);
+      border-color: rgba(133, 243, 195, 0.18);
+    }
+
+    .provider-bar[data-state="active"] .provider-text {
+      color: var(--success);
+    }
+
+    .provider-bar[data-state="error"] {
+      background: rgba(255, 140, 140, 0.08);
+      border-color: rgba(255, 140, 140, 0.18);
+    }
+
+    .provider-bar[data-state="error"] .provider-text {
+      color: var(--danger);
+    }
+
+    .status-bar,
+    .error-bar,
+    .toast {
+      border-radius: 18px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid var(--stroke);
+      background: rgba(255, 255, 255, 0.78);
+    }
+
+    .status-bar {
+      color: var(--text-soft);
+    }
+
+    .error-bar {
+      color: var(--danger);
+      background: rgba(255, 140, 140, 0.08);
+      border-color: rgba(255, 140, 140, 0.18);
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid rgba(61, 141, 255, 0.16);
+      border-top-color: var(--accent);
+      animation: spin 0.9s linear infinite;
+      flex-shrink: 0;
+    }
+
+    .error-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: inline-grid;
+      place-items: center;
+      background: rgba(255, 140, 140, 0.12);
+      color: var(--danger);
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .aside-panel {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .workflow-stack {
+      display: grid;
+      gap: 14px;
+    }
+
+    .workflow-step {
+      padding: 18px;
+      border-radius: var(--radius-lg);
+      background: rgba(255, 255, 255, 0.68);
+      border: 1px solid var(--stroke);
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 14px;
+      align-items: start;
+      transition: transform var(--transition), border-color var(--transition), background var(--transition), box-shadow var(--transition);
+    }
+
+    .workflow-step:hover {
+      transform: translateY(-3px);
+      border-color: rgba(61, 141, 255, 0.18);
+      background: rgba(255, 255, 255, 0.86);
+      box-shadow: 0 14px 26px rgba(74, 114, 155, 0.08);
+    }
+
+    .workflow-step-number {
+      width: 38px;
+      height: 38px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, rgba(61, 141, 255, 0.14), rgba(255, 184, 119, 0.18));
+      border: 1px solid rgba(61, 141, 255, 0.14);
+      color: var(--accent-strong);
+      font-family: "Space Grotesk", "Manrope", sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .workflow-step h3 {
+      margin: 0 0 10px;
+      font-size: 1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .workflow-step p {
+      margin: 0;
+      color: var(--text-muted);
+      line-height: 1.7;
+      font-size: 0.94rem;
+    }
+
+    .results-shell {
+      margin-top: 28px;
+      padding: 26px;
+    }
+
+    .results-shell.show-output {
+      animation: fadeInUp 420ms ease;
+    }
+
+    .results-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .results-kicker {
+      margin: 0 0 8px;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+
+    .results-title {
+      margin: 0;
+      font-size: clamp(1.5rem, 3vw, 2.25rem);
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+    }
+
+    .results-copy {
+      flex-shrink: 0;
+    }
+
+    .empty-state {
+      padding: 32px;
+      border-radius: calc(var(--radius-lg) + 4px);
+      border: 1px dashed rgba(102, 139, 176, 0.24);
+      background: linear-gradient(180deg, rgba(255,255,255,0.78), rgba(248,252,255,0.6));
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    .empty-state strong {
+      display: block;
+      color: var(--text);
+      margin-bottom: 10px;
+      font-size: 1.05rem;
+    }
+
+    .active-step {
+      border: 2px solid #3b82f6 !important;
+      box-shadow: 0 0 10px rgba(59,130,246,0.3);
+    }
+
+    .scene-grid {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+
+    .scene-card {
+      position: relative;
+      padding: 20px;
+      border-radius: calc(var(--radius-lg) + 2px);
+      border: 1px solid var(--stroke);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.88), rgba(248,252,255,0.72)),
+        rgba(255, 255, 255, 0.9);
+      overflow: hidden;
+      transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition), background var(--transition);
+    }
+
+    .scene-card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(133, 216, 255, 0.08), transparent 38%, transparent 62%, rgba(255, 201, 143, 0.05));
+      opacity: 0;
+      transition: opacity var(--transition);
+      pointer-events: none;
+    }
+
+    .scene-card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(61, 141, 255, 0.22);
+      box-shadow: 0 20px 36px rgba(74, 114, 155, 0.14);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,252,255,0.82)),
+        rgba(255, 255, 255, 0.96);
+    }
+
+    .scene-card:hover::after {
+      opacity: 1;
+    }
+
+    .scene-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .scene-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.82);
+      border: 1px solid var(--stroke);
+      color: var(--text-soft);
+      font-weight: 800;
+      font-size: 0.9rem;
+      letter-spacing: -0.01em;
+    }
+
+    .scene-chip::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), white);
+      box-shadow: 0 0 18px rgba(133, 216, 255, 0.5);
+    }
+
+    .ghost-button,
+    .copy-button {
+      appearance: none;
+      border: 1px solid var(--stroke);
+      background: rgba(255, 255, 255, 0.82);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 10px 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font: inherit;
+      font-size: 0.86rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform var(--transition), background var(--transition), border-color var(--transition), color var(--transition);
+    }
+
+    .ghost-button:hover,
+    .copy-button:hover {
+      transform: translateY(-2px);
+      background: rgba(255, 255, 255, 0.96);
+      border-color: rgba(61, 141, 255, 0.22);
+    }
+
+    .copy-button.copied,
+    .ghost-button.copied {
+      background: rgba(133, 243, 195, 0.12);
+      border-color: rgba(133, 243, 195, 0.18);
+      color: var(--success);
+    }
+
+    .scene-section + .scene-section {
+      margin-top: 16px;
+    }
+
+    .scene-section {
+      position: relative;
+      z-index: 1;
+      border-radius: 18px;
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(102, 139, 176, 0.16);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .section-header h3 {
+      margin: 0;
+      font-size: 0.95rem;
+      letter-spacing: -0.02em;
+    }
+
+    .scene-text {
+      margin: 0;
+      color: var(--text-soft);
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 0.94rem;
+    }
+
+    .toast-wrap {
+      position: fixed;
+      inset: auto 16px 18px auto;
+      z-index: 50;
+      display: grid;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: rgba(255, 255, 255, 0.94);
+      border-color: rgba(27, 139, 101, 0.16);
+      color: var(--text);
+      box-shadow: 0 18px 40px rgba(74, 114, 155, 0.14);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity var(--transition), transform var(--transition);
+      min-width: 220px;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 16px rgba(133, 243, 195, 0.45);
+      flex-shrink: 0;
+    }
+
+    .section-shell {
+      margin-top: 28px;
+      padding: 26px;
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--stroke);
+      background: rgba(255, 255, 255, 0.74);
+      backdrop-filter: blur(18px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .section-heading {
+      margin-bottom: 20px;
+    }
+
+    .section-kicker {
+      margin: 0 0 8px;
+      color: var(--accent-strong);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+
+    .section-title {
+      margin: 0;
+      font-size: clamp(1.45rem, 3vw, 2rem);
+      letter-spacing: -0.03em;
+    }
+
+    .section-description {
+      margin: 10px 0 0;
+      color: var(--text-muted);
+      line-height: 1.7;
+      max-width: 760px;
+    }
+
+    .plan-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+    }
+
+    .plan-card,
+    .use-card {
+      padding: 22px;
+      border-radius: calc(var(--radius-lg) + 2px);
+      border: 1px solid var(--stroke);
+      background: rgba(255, 255, 255, 0.72);
+      box-shadow: 0 12px 24px rgba(74, 114, 155, 0.08);
+    }
+
+    .plan-card.featured {
+      border-color: rgba(61, 141, 255, 0.28);
+      background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(236,246,255,0.82));
+    }
+
+    .plan-badge {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(61, 141, 255, 0.16);
+      background: rgba(61, 141, 255, 0.08);
+      color: var(--accent-strong);
+      font-size: 0.8rem;
+      font-weight: 800;
+    }
+
+    .plan-card h3,
+    .use-card h3 {
+      margin: 16px 0 10px;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+    }
+
+    .plan-price {
+      font-family: "Space Grotesk", "Manrope", sans-serif;
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.05em;
+      color: var(--text);
+    }
+
+    .plan-period {
+      font-size: 0.98rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .plan-offer {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      margin: 2px 0 16px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(61, 141, 255, 0.14);
+      background: rgba(61, 141, 255, 0.07);
+      color: var(--accent-strong);
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .plan-price-stack {
+      display: grid;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .plan-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .plan-original {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      font-weight: 700;
+      text-decoration: line-through;
+      text-decoration-thickness: 1.5px;
+    }
+
+    .plan-discount {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(27, 139, 101, 0.1);
+      color: var(--success);
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+    }
+
+    .plan-features {
+      margin: 16px 0 22px;
+      padding-left: 18px;
+      display: grid;
+      gap: 10px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .use-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+    }
+
+    .use-card h3 {
+      margin-top: 0;
+    }
+
+    .use-card p {
+      margin: 0;
+      color: var(--text-muted);
+      line-height: 1.65;
+      font-size: 0.94rem;
+    }
+
+    .support-shell {
+      text-align: left;
+    }
+
+    .account-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(20, 46, 72, 0.18);
+      backdrop-filter: blur(12px);
+    }
+
+    .account-modal-card {
+      width: min(100%, 760px);
+      max-height: min(82vh, 880px);
+      overflow: auto;
+      padding: 24px;
+      border-radius: calc(var(--radius-xl) + 2px);
+      border: 1px solid var(--stroke);
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .account-modal-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .account-modal-body {
+      display: grid;
+      gap: 18px;
+    }
+
+    .modal-close-btn {
+      appearance: none;
+      border: 1px solid var(--stroke);
+      background: rgba(255, 255, 255, 0.84);
+      color: var(--text-soft);
+      border-radius: 14px;
+      padding: 10px 14px;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform var(--transition), border-color var(--transition), background var(--transition);
+    }
+
+    .modal-close-btn:hover {
+      transform: translateY(-1px);
+      border-color: var(--stroke-strong);
+      background: rgba(255, 255, 255, 1);
+    }
+
+    .modal-form {
+      display: grid;
+      gap: 14px;
+    }
+
+    .modal-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .modal-field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .modal-field label {
+      color: var(--text-soft);
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    .modal-note {
+      margin: 0;
+      color: var(--text-muted);
+      line-height: 1.7;
+      font-size: 0.94rem;
+    }
+
+    .account-stat {
+      padding: 16px 18px;
+      border-radius: 18px;
+      border: 1px solid var(--stroke);
+      background: rgba(255, 255, 255, 0.76);
+    }
+
+    .account-stat strong,
+    .history-card strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 0.98rem;
+      color: var(--text);
+    }
+
+    .account-stat span,
+    .history-meta,
+    .history-card p,
+    .activity-item span {
+      color: var(--text-muted);
+      line-height: 1.65;
+      font-size: 0.92rem;
+    }
+
+    .history-list,
+    .activity-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .history-card,
+    .activity-item {
+      padding: 16px 18px;
+      border-radius: 18px;
+      border: 1px solid var(--stroke);
+      background: rgba(255, 255, 255, 0.78);
+    }
+
+    .history-meta {
+      margin-bottom: 8px;
+    }
+
+    .history-card p,
+    .activity-item p {
+      margin: 0;
+    }
+
+    .empty-message {
+      padding: 20px;
+      border-radius: 18px;
+      border: 1px dashed rgba(102, 139, 176, 0.26);
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes shakeX {
+      0%, 100% {
+        transform: translateX(0);
+      }
+
+      20% {
+        transform: translateX(-7px);
+      }
+
+      40% {
+        transform: translateX(6px);
+      }
+
+      60% {
+        transform: translateX(-4px);
+      }
+
+      80% {
+        transform: translateX(3px);
+      }
+    }
+
+    @media (max-width: 1080px) {
+      .hero,
+      .panel-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-note {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .shell {
+        width: min(var(--container), calc(100% - 20px));
+        padding: 18px 0 36px;
+      }
+
+      .topbar,
+      .topbar-actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .profile-menu,
+      .profile-button {
+        width: 100%;
+      }
+
+      .profile-button {
+        justify-content: space-between;
+      }
+
+      .profile-dropdown {
+        left: 0;
+        right: auto;
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+      }
+
+      .login-card {
+        padding: 24px;
+      }
+
+      .auth-switch,
+      .modal-grid,
+      .progress-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .progress-step {
+        align-items: flex-start;
+        text-align: left;
+        padding-left: 0;
+      }
+
+      .progress-step::after {
+        display: none;
+      }
+
+      .account-modal {
+        padding: 14px;
+      }
+
+      .account-modal-card {
+        padding: 18px;
+      }
+
+      .account-modal-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .hero,
+      .section-shell,
+      .panel,
+      .aside-panel,
+      .results-shell {
+        padding: 20px;
+      }
+
+      .hero-note,
+      .option-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .panel-header,
+      .results-topbar,
+      .scene-header,
+      .section-header,
+      .control-label,
+      .provider-bar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .provider-text {
+        text-align: left;
+      }
+
+      .button-row {
+        flex-direction: column;
+      }
+
+      .button {
+        width: 100%;
+      }
+
+      .plan-grid,
+      .use-grid,
+      .workflow-step {
+        grid-template-columns: 1fr;
+      }
+
+      .ghost-button,
+      .copy-button {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body class="app-locked">
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-card">
+      <div class="login-kicker">Premium Access</div>
+      <h2 class="login-title">Premium Access</h2>
+      <p class="login-copy">Access your creator workspace, manage your subscription, and save prompt history like a real SaaS product.</p>
+
+      <div class="auth-switch">
+        <button id="showLoginBtn" class="auth-switch-btn active" type="button">Login</button>
+        <button id="showSignupBtn" class="auth-switch-btn" type="button">Create Account</button>
+      </div>
+
+      <form id="loginForm" class="login-actions">
+        <input id="loginEmail" class="field" type="email" placeholder="Enter your email" autocomplete="username" spellcheck="false">
+        <input id="loginPassword" class="field" type="password" placeholder="Enter your password" autocomplete="current-password" spellcheck="false">
+        <button id="unlockBtn" class="button button-primary" type="submit">Login</button>
+      </form>
+
+      <form id="signupForm" class="login-actions" hidden>
+        <input id="signupName" class="field" type="text" placeholder="Enter your name" autocomplete="name" spellcheck="false">
+        <input id="signupEmail" class="field" type="email" placeholder="Enter your email" autocomplete="email" spellcheck="false">
+        <input id="signupPassword" class="field" type="password" placeholder="Create a password" autocomplete="new-password" spellcheck="false">
+        <button id="createAccountBtn" class="button button-primary" type="submit">Create Account</button>
+      </form>
+
+      <div id="loginError" class="login-error" hidden></div>
+    </div>
+  </div>
+
+  <div id="appShell" class="shell" inert aria-hidden="true">
+    <header class="topbar">
+      <div class="brand-wrap">
+        <div class="brand-mark">AI</div>
+        <div class="brand-copy">
+          <strong>PromptStudio AI</strong>
+          <span>Built for creators, powered by AI.</span>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <div id="headerChip" class="header-chip">Starter Access</div>
+
+        <div class="profile-menu">
+          <button id="profileButton" class="profile-button" type="button" aria-expanded="false" aria-haspopup="true">
+            <span id="profileAvatar" class="profile-avatar">AC</span>
+            <span id="profileLabel" class="profile-label">Account</span>
+          </button>
+
+          <div id="profileDropdown" class="profile-dropdown" hidden>
+            <button id="profileMenuBtn" class="dropdown-item" type="button">Profile</button>
+            <button id="subscriptionMenuBtn" class="dropdown-item" type="button">Subscription</button>
+            <button id="activityBtn" class="dropdown-item" type="button">Activity</button>
+            <button id="historyBtn" class="dropdown-item" type="button">History</button>
+            <button id="logoutBtn" class="dropdown-item dropdown-danger" type="button">Logout</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section class="progress-shell" aria-label="Workflow progress">
+      <div class="progress-grid">
+        <div class="progress-step active" data-step="1">
+          <span class="progress-circle">1</span>
+          <span class="progress-label">API Key</span>
+        </div>
+        <div class="progress-step" data-step="2">
+          <span class="progress-circle">2</span>
+          <span class="progress-label">Style</span>
+        </div>
+        <div class="progress-step" data-step="3">
+          <span class="progress-circle">3</span>
+          <span class="progress-label">Idea</span>
+        </div>
+        <div class="progress-step" data-step="4">
+          <span class="progress-circle">4</span>
+          <span class="progress-label">Generate</span>
+        </div>
+        <div class="progress-step" data-step="5">
+          <span class="progress-circle">5</span>
+          <span class="progress-label">Output</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow">Built for creators, powered by AI.</div>
+        <h1><span>Create High-Quality YouTube Prompts with PromptStudio AI</span></h1>
+        <p>Generate cinematic scenes, hooks, and scripts in seconds using AI.</p>
+      </div>
+
+      <div class="hero-note">
+        <div class="note-card">
+          <strong>Premium Prompt Direction</strong>
+          <span>Style and format steer the AI prompt dynamically so every output feels intentional, not generic.</span>
+        </div>
+        <div class="note-card">
+          <strong>Scene-by-Scene Cards</strong>
+          <span>Each scene is parsed from JSON and rendered into clean cards with separate copy actions.</span>
+        </div>
+        <div class="note-card">
+          <strong>Session-Only API Key</strong>
+          <span>Your API key stays in memory for this tab only and is never stored in local storage.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel-grid">
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Create Your Prompt Engine</h2>
+            <p class="panel-subtitle">Refine the concept, shape the style, then generate six cinematic scenes with automatic fallback across Gemini, OpenRouter, Groq, and Ollama.</p>
+          </div>
+          <div class="secure-chip">Not Stored</div>
+        </div>
+
+        <div id="api-section" class="control-block control-block-emphasis">
+          <label class="control-label" for="apiKey">
+            <span>Step 1: Add API Key</span>
+            <span class="control-hint">Add your provider key to unlock prompt generation</span>
+          </label>
+          <input id="apiKey" class="field" type="password" placeholder="Paste any provider API key or leave blank for Ollama" autocomplete="new-password" spellcheck="false">
+          <div class="step-helper">You must add your API key before generating prompts.</div>
+          <div class="api-helper">
+            <span>Get your free API key from:</span>
+            <a class="inline-link" href="https://console.groq.com" target="_blank" rel="noreferrer">Groq: https://console.groq.com</a>
+            <a class="inline-link" href="https://openrouter.ai" target="_blank" rel="noreferrer">OpenRouter: https://openrouter.ai</a>
+            <a class="inline-link" href="https://console.anthropic.com" target="_blank" rel="noreferrer">Claude (Anthropic): https://console.anthropic.com</a>
+            <a class="inline-link" href="https://makersuite.google.com/app" target="_blank" rel="noreferrer">Gemini (Google): https://makersuite.google.com/app</a>
+            <span>Use your key here to start generating prompts.</span>
+            <span>Automatic fallback order: Gemini -> OpenRouter -> Groq -> Ollama. No provider selection required.</span>
+          </div>
+          <div id="providerBar" class="provider-bar" data-state="idle">
+            <span class="provider-kicker">Provider</span>
+            <span id="providerText" class="provider-text">Auto fallback: Gemini -> OpenRouter -> Groq -> Ollama</span>
+          </div>
+        </div>
+
+        <div id="style-section" class="control-block">
+          <div class="control-label">
+            <span>Style Controls</span>
+            <span class="control-hint">These influence the prompt dynamically</span>
+          </div>
+
+          <div class="option-grid">
+            <div class="option-group" data-group="tone">
+              <h3>Style</h3>
+              <div class="option-set">
+                <button type="button" class="option-pill active" data-value="Cinematic">Cinematic</button>
+                <button type="button" class="option-pill" data-value="Emotional">Emotional</button>
+                <button type="button" class="option-pill" data-value="Viral">Viral</button>
+                <button type="button" class="option-pill" data-value="Funny">Funny</button>
+                <button type="button" class="option-pill" data-value="MrBeast">MrBeast</button>
+                <button type="button" class="option-pill" data-value="Storytelling">Storytelling</button>
+                <button type="button" class="option-pill" data-value="Faceless">Faceless</button>
+                <button type="button" class="option-pill" data-value="Educational">Educational</button>
+                <button type="button" class="option-pill" data-value="Motivational">Motivational</button>
+                <button type="button" class="option-pill" data-value="Horror">Horror</button>
+              </div>
+            </div>
+
+            <div class="option-group" data-group="format">
+              <h3>Format</h3>
+              <div class="option-set">
+                <button type="button" class="option-pill active" data-value="Shorts">Shorts</button>
+                <button type="button" class="option-pill" data-value="Story">Story</button>
+                <button type="button" class="option-pill" data-value="Documentary">Documentary</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="prompt-preview">
+            <strong>Live Prompt Direction</strong>
+            <p id="promptPreview">Create a YouTube video with the following style:
+Cinematic visuals with dramatic imagery, immersive mood, polished scene design, and elevated cinematic energy.
+
+Then continue with the existing cinematic instructions in Shorts format by breaking it into 6 scenes with highly detailed visual prompts, short engaging dialogue, and editing instructions with cuts, music, transitions, and effects. Make it highly engaging, scroll-stopping, and suitable for modern audiences.</p>
+          </div>
+        </div>
+
+        <div id="idea-section" class="control-block">
+          <label class="control-label" for="ideaInput">
+            <span>Idea Input</span>
+            <span class="control-hint">Paste a rough concept or hook</span>
+          </label>
+          <textarea id="ideaInput" class="textarea" placeholder="Example: A creator documents what happens when they wake up at 4 AM for 7 days and try to rebuild their focus, confidence, and routine."></textarea>
+        </div>
+
+        <div id="generate-section" class="button-row">
+          <button id="improveBtn" class="button button-secondary" type="button">Improve Idea</button>
+          <button id="generateBtn" class="button button-primary" type="button">Generate Scenes</button>
+        </div>
+
+        <div class="status-stack">
+          <div id="statusBar" class="status-bar" hidden>
+            <div class="spinner"></div>
+            <span id="statusText">Generating cinematic scenes...</span>
+          </div>
+          <div id="errorBar" class="error-bar" hidden>
+            <div class="error-icon">!</div>
+            <span id="errorText"></span>
+          </div>
+        </div>
+      </div>
+
+      <aside class="panel aside-panel">
+        <div class="section-heading">
+          <p class="section-kicker">Workflow</p>
+          <h2 class="section-title">How It Works</h2>
+          <p class="section-description">Follow the same flow the product uses so creators always know what to do next.</p>
+        </div>
+
+        <div class="workflow-stack">
+          <article class="workflow-step">
+            <div class="workflow-step-number">1</div>
+            <div>
+              <h3>Add API Key</h3>
+              <p>Paste your API key from Groq, OpenRouter, Claude, or Gemini.</p>
+            </div>
+          </article>
+
+          <article class="workflow-step">
+            <div class="workflow-step-number">2</div>
+            <div>
+              <h3>Choose Style</h3>
+              <p>Select cinematic, MrBeast, faceless, or other styles.</p>
+            </div>
+          </article>
+
+          <article class="workflow-step">
+            <div class="workflow-step-number">3</div>
+            <div>
+              <h3>Enter Your Idea</h3>
+              <p>Add your video concept or topic.</p>
+            </div>
+          </article>
+
+          <article class="workflow-step">
+            <div class="workflow-step-number">4</div>
+            <div>
+              <h3>Generate Prompts</h3>
+              <p>Click generate to create cinematic scenes instantly.</p>
+            </div>
+          </article>
+
+          <article class="workflow-step">
+            <div class="workflow-step-number">5</div>
+            <div>
+              <h3>Copy &amp; Use</h3>
+              <p>Use prompts in YouTube videos, Shorts, or AI tools.</p>
+            </div>
+          </article>
+        </div>
+      </aside>
+    </section>
+
+    <section class="results-shell" id="output-section">
+      <div class="results-topbar" id="resultsTopbar" hidden>
+        <div>
+          <p class="results-kicker">Generated Scenes</p>
+          <h2 class="results-title" id="resultsTitle">Your cinematic scene map</h2>
+        </div>
+        <button id="copyAllBtn" class="button button-secondary results-copy" type="button">Copy All Scenes</button>
+      </div>
+
+      <div class="empty-state" id="emptyState">
+        <strong>Your generated scenes will appear here</strong>
+        Generate scenes to see polished cinematic output cards appear in this section.
+      </div>
+
+      <div id="sceneGrid" class="scene-grid" hidden></div>
+    </section>
+
+    <section class="section-shell">
+      <div class="section-heading">
+        <p class="section-kicker">Use Cases</p>
+        <h2 class="section-title">Where You Can Use These Prompts</h2>
+        <p class="section-description">Use the generated scene prompts across creator workflows, short-form distribution, and AI production tools.</p>
+      </div>
+
+      <div class="use-grid">
+        <article class="use-card">
+          <h3>YouTube videos</h3>
+          <p>Plan longer videos with clear hooks, pacing, dialogue, and visual structure.</p>
+        </article>
+        <article class="use-card">
+          <h3>YouTube Shorts</h3>
+          <p>Create fast, retention-focused prompt flows optimized for short-form attention.</p>
+        </article>
+        <article class="use-card">
+          <h3>Instagram Reels</h3>
+          <p>Adapt the same prompt framework for vertical social videos and rapid iteration.</p>
+        </article>
+        <article class="use-card">
+          <h3>AI video tools</h3>
+          <p>Use them in Runway, Pika, and similar AI video tools to guide shot generation.</p>
+        </article>
+        <article class="use-card">
+          <h3>Voiceover tools</h3>
+          <p>Feed dialogue and structure into voiceover or narration tools for faster production.</p>
+        </article>
+      </div>
+    </section>
+
+    <footer class="section-shell support-shell">
+      <p class="section-kicker">PromptStudio AI © 2026</p>
+      <h2 class="section-title">All rights reserved</h2>
+      <p class="section-description">Support:</p>
+      <a class="support-link" href="mailto:tharundonavalli@gmail.com">tharundonavalli@gmail.com</a>
+    </footer>
+  </div>
+
+  <div id="accountModal" class="account-modal" hidden>
+    <div class="account-modal-card">
+      <div class="account-modal-header">
+        <div>
+          <p class="section-kicker" id="accountModalKicker">Account</p>
+          <h2 class="section-title" id="accountModalTitle">Account</h2>
+        </div>
+        <button id="closeAccountModalBtn" class="modal-close-btn" type="button" aria-label="Close account panel">Close</button>
+      </div>
+      <div id="accountModalBody" class="account-modal-body"></div>
+    </div>
+  </div>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+  <script>
+    const { createClient } = supabase;
+    const supabaseClient = createClient(
+      "https://evaskpthhzfynrplpqqd.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV2YXNrcHRoaHpmeW5ycGxwcXFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzODUzOTMsImV4cCI6MjA5MDk2MTM5M30.BAu7S7ctX_2wRXYEZnhIAT-NHcdrnagZDNSssITO5z0"
+    );
+    console.log("Supabase connected");
+    const ACCOUNT_STORAGE_KEY = "pgAccount";
+    const ACTIVITY_STORAGE_KEY = "pgActivity";
+    const HISTORY_STORAGE_KEY = "pgHistory";
+    const HISTORY_LIMIT = 12;
+    const SCENE_COUNT = 6;
+    const PROVIDER_CHAIN_LABEL = "Gemini -> OpenRouter -> Groq -> Ollama";
+    const GEMINI_MODEL = "gemini-2.5-flash";
+    const OPENROUTER_MODEL = "openrouter/auto";
+    const GROQ_MODEL = "llama-3.3-70b-versatile";
+    const OLLAMA_BASE_URL = "http://localhost:11434/api";
+    const REQUEST_TIMEOUT_MS = 25000;
+    const RAZORPAY_KEY = "rzp_test_SZqspLNJBzVvZy";
+    let currentStep = 1;
+
+    const state = {
+      tone: "Cinematic",
+      format: "Shorts",
+      scenesPayload: null,
+      loading: false,
+      activeProvider: "",
+      ollamaModel: "",
+      authMode: "login",
+      currentUser: null,
+      accountView: "profile",
+      stepFlow: {
+        api: false,
+        style: false,
+        idea: false,
+        generate: false
+      }
+    };
+
+    const appShell = document.getElementById("appShell");
+    const loginOverlay = document.getElementById("loginOverlay");
+    const showLoginBtn = document.getElementById("showLoginBtn");
+    const showSignupBtn = document.getElementById("showSignupBtn");
+    const loginForm = document.getElementById("loginForm");
+    const signupForm = document.getElementById("signupForm");
+    const loginEmailInput = document.getElementById("loginEmail");
+    const loginPasswordInput = document.getElementById("loginPassword");
+    const signupNameInput = document.getElementById("signupName");
+    const signupEmailInput = document.getElementById("signupEmail");
+    const signupPasswordInput = document.getElementById("signupPassword");
+    const unlockBtn = document.getElementById("unlockBtn");
+    const createAccountBtn = document.getElementById("createAccountBtn");
+    const loginError = document.getElementById("loginError");
+    const headerChip = document.getElementById("headerChip");
+    const profileButton = document.getElementById("profileButton");
+    const profileAvatar = document.getElementById("profileAvatar");
+    const profileLabel = document.getElementById("profileLabel");
+    const profileDropdown = document.getElementById("profileDropdown");
+    const profileMenuBtn = document.getElementById("profileMenuBtn");
+    const subscriptionMenuBtn = document.getElementById("subscriptionMenuBtn");
+    const activityBtn = document.getElementById("activityBtn");
+    const historyBtn = document.getElementById("historyBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const accountModal = document.getElementById("accountModal");
+    const accountModalKicker = document.getElementById("accountModalKicker");
+    const accountModalTitle = document.getElementById("accountModalTitle");
+    const accountModalBody = document.getElementById("accountModalBody");
+    const closeAccountModalBtn = document.getElementById("closeAccountModalBtn");
+    const progressSteps = Array.from(document.querySelectorAll(".progress-step"));
+    const apiSection = document.getElementById("api-section");
+    const styleSection = document.getElementById("style-section");
+    const ideaSection = document.getElementById("idea-section");
+    const generateSection = document.getElementById("generate-section");
+    const apiKeyInput = document.getElementById("apiKey");
+    const ideaInput = document.getElementById("ideaInput");
+    const improveBtn = document.getElementById("improveBtn");
+    const generateBtn = document.getElementById("generateBtn");
+    const promptPreview = document.getElementById("promptPreview");
+    const providerBar = document.getElementById("providerBar");
+    const providerText = document.getElementById("providerText");
+    const statusBar = document.getElementById("statusBar");
+    const statusText = document.getElementById("statusText");
+    const errorBar = document.getElementById("errorBar");
+    const errorText = document.getElementById("errorText");
+    const resultsSection = document.getElementById("output-section");
+    const resultsTopbar = document.getElementById("resultsTopbar");
+    const resultsTitle = document.getElementById("resultsTitle");
+    const copyAllBtn = document.getElementById("copyAllBtn");
+    const sceneGrid = document.getElementById("sceneGrid");
+    const emptyState = document.getElementById("emptyState");
+    const toastWrap = document.getElementById("toastWrap");
+    const generateDefaultLabel = generateBtn.textContent;
+    let ideaTypingTimeout = 0;
+
+    const stepSectionMap = {
+      1: apiSection,
+      2: styleSection,
+      3: ideaSection,
+      4: generateSection,
+      5: resultsSection
+    };
+
+    function initializeOptionGroups() {
+      document.querySelectorAll(".option-group").forEach((group) => {
+        const groupName = group.dataset.group;
+        const buttons = Array.from(group.querySelectorAll(".option-pill"));
+        buttons.forEach((button) => {
+          button.addEventListener("click", () => {
+            buttons.forEach((item) => item.classList.toggle("active", item === button));
+            state[groupName] = button.dataset.value;
+            updatePromptPreview();
+
+            if (groupName === "tone") {
+              if (!state.stepFlow.style) {
+                state.stepFlow.style = true;
+                updateProgress(2);
+                scheduleSectionScroll(ideaSection);
+              } else if (currentStep < 2) {
+                updateProgress(2);
+              }
+            }
+          });
+        });
+      });
+    }
+
+    function updatePromptPreview() {
+      promptPreview.textContent = buildDynamicPromptText(state.tone, state.format);
+    }
+
+    function updateProgress(step) {
+      currentStep = step;
+      progressSteps.forEach((item) => {
+        const itemStep = Number(item.dataset.step);
+        item.classList.toggle("completed", itemStep < step);
+        item.classList.toggle("active", itemStep === step);
+      });
+
+      Object.entries(stepSectionMap).forEach(([key, element]) => {
+        if (element) {
+          element.classList.toggle("active-step", Number(key) === step);
+        }
+      });
+    }
+
+    function scheduleSectionScroll(element) {
+      if (!element) {
+        return;
+      }
+
+      window.setTimeout(() => {
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 240);
+    }
+
+    function markApiKeyState(shouldAdvance = true) {
+      const hasApiKey = apiKeyInput.value.trim().length > 0;
+      apiKeyInput.classList.toggle("is-valid", hasApiKey);
+
+      if (hasApiKey && !state.stepFlow.api) {
+        state.stepFlow.api = true;
+        updateProgress(1);
+        if (shouldAdvance) {
+          scheduleSectionScroll(styleSection);
+        }
+      }
+    }
+
+    function triggerApiKeyErrorState() {
+      apiKeyInput.classList.remove("shake");
+      void apiKeyInput.offsetWidth;
+      apiKeyInput.classList.add("shake");
+    }
+
+    function showIdeaTypingState() {
+      ideaInput.classList.add("is-typing");
+      window.clearTimeout(ideaTypingTimeout);
+      ideaTypingTimeout = window.setTimeout(() => {
+        ideaInput.classList.remove("is-typing");
+      }, 380);
+    }
+
+    function readJsonStorage(key, fallback) {
+      try {
+        const rawValue = window.localStorage.getItem(key);
+        if (!rawValue) {
+          return fallback;
+        }
+
+        const parsed = JSON.parse(rawValue);
+        return parsed == null ? fallback : parsed;
+      } catch (error) {
+        return fallback;
+      }
+    }
+
+    function writeJsonStorage(key, value) {
+      try {
+        window.localStorage.setItem(key, JSON.stringify(value));
+      } catch (error) {
+        // Ignore storage failures and keep the current session usable.
+      }
+    }
+
+    function getStoredAccount() {
+      const stored = readJsonStorage(ACCOUNT_STORAGE_KEY, {});
+      const user = state.currentUser;
+      if (!user) {
+        return null;
+      }
+
+      const email = normalizeText(user && user.email);
+      const storedEmail = normalizeText(stored && stored.email).toLowerCase();
+      const scopedToCurrentUser = storedEmail && storedEmail === email.toLowerCase();
+      const storedName = scopedToCurrentUser ? normalizeText(stored && stored.name) : "";
+      const subscriptionPlan = scopedToCurrentUser ? normalizeText(stored && stored.subscriptionPlan) : "";
+      const expiresAt = scopedToCurrentUser ? normalizeText(stored && stored.expiresAt) : "";
+      const metadataName = normalizeText(user && user.user_metadata && user.user_metadata.name);
+
+      return {
+        name: metadataName || storedName,
+        email,
+        subscriptionPlan,
+        expiresAt
+      };
+    }
+
+    function saveStoredAccount(account) {
+      const stored = readJsonStorage(ACCOUNT_STORAGE_KEY, {});
+      const source = account && typeof account === "object" ? account : {};
+      const nextEmail = Object.prototype.hasOwnProperty.call(source, "email")
+        ? normalizeText(source.email).toLowerCase()
+        : normalizeText((state.currentUser && state.currentUser.email) || stored.email).toLowerCase();
+      const storedEmail = normalizeText(stored && stored.email).toLowerCase();
+      const scopedStored = storedEmail && storedEmail === nextEmail ? stored : {};
+      const nextAccount = {
+        email: nextEmail,
+        name: Object.prototype.hasOwnProperty.call(source, "name")
+          ? normalizeText(source.name)
+          : normalizeText(scopedStored.name),
+        subscriptionPlan: Object.prototype.hasOwnProperty.call(source, "subscriptionPlan")
+          ? normalizeText(source.subscriptionPlan)
+          : normalizeText(scopedStored.subscriptionPlan),
+        expiresAt: Object.prototype.hasOwnProperty.call(source, "expiresAt")
+          ? normalizeText(source.expiresAt)
+          : normalizeText(scopedStored.expiresAt)
+      };
+
+      writeJsonStorage(ACCOUNT_STORAGE_KEY, nextAccount);
+      updateUserChrome();
+      if (!accountModal.hidden) {
+        renderAccountView(state.accountView);
+      }
+    }
+
+    function getExpiryDate(value) {
+      const source = normalizeText(value);
+      if (!source) {
+        return null;
+      }
+
+      const parsed = new Date(source);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    function hasActiveSubscription(account) {
+      return Boolean(
+        account &&
+        account.subscriptionPlan &&
+        getExpiryDate(account.expiresAt) &&
+        getExpiryDate(account.expiresAt) > new Date()
+      );
+    }
+
+    function formatSubscriptionDate(value) {
+      const date = getExpiryDate(value);
+      if (!date) {
+        return "";
+      }
+
+      try {
+        return date.toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "numeric"
+        });
+      } catch (error) {
+        return date.toISOString().slice(0, 10);
+      }
+    }
+
+    function setCurrentUser(user) {
+      state.currentUser = user || null;
+      updateUserChrome();
+      if (!accountModal.hidden) {
+        renderAccountView(state.accountView);
+      }
+    }
+
+    function getActivityEntries() {
+      const entries = readJsonStorage(ACTIVITY_STORAGE_KEY, []);
+      return Array.isArray(entries) ? entries : [];
+    }
+
+    function saveActivityEntries(entries) {
+      writeJsonStorage(ACTIVITY_STORAGE_KEY, entries.slice(0, 20));
+    }
+
+    function addActivity(message) {
+      const content = normalizeText(message);
+      if (!content) {
+        return;
+      }
+
+      const entries = getActivityEntries();
+      entries.unshift({
+        message: content,
+        createdAt: new Date().toISOString()
+      });
+      saveActivityEntries(entries);
+      if (!accountModal.hidden && state.accountView === "activity") {
+        renderAccountView("activity");
+      }
+    }
+
+    function getHistoryEntries() {
+      const entries = readJsonStorage(HISTORY_STORAGE_KEY, []);
+      return Array.isArray(entries) ? entries : [];
+    }
+
+    function saveHistoryEntries(entries) {
+      writeJsonStorage(HISTORY_STORAGE_KEY, entries.slice(0, HISTORY_LIMIT));
+    }
+
+    function addHistoryEntry(entry) {
+      const entries = getHistoryEntries();
+      entries.unshift({
+        title: normalizeText(entry && entry.title) || "Untitled prompt",
+        idea: normalizeText(entry && entry.idea),
+        style: normalizeText(entry && entry.style),
+        format: normalizeText(entry && entry.format),
+        createdAt: new Date().toISOString()
+      });
+      saveHistoryEntries(entries);
+      if (!accountModal.hidden && state.accountView === "history") {
+        renderAccountView("history");
+      }
+    }
+
+    function escapeHtml(value) {
+      return normalizeText(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function formatTimestamp(value) {
+      if (!value) {
+        return "Just now";
+      }
+
+      try {
+        return new Date(value).toLocaleString();
+      } catch (error) {
+        return "Just now";
+      }
+    }
+
+    function getInitials(name, email) {
+      const source = normalizeText(name) || normalizeText(email) || "Account";
+      const parts = source.split(/\s+/).filter(Boolean);
+      const initials = parts.length > 1
+        ? parts.slice(0, 2).map((part) => part.charAt(0)).join("")
+        : source.slice(0, 2);
+
+      return initials.toUpperCase();
+    }
+
+    function updateUserChrome() {
+      const account = getStoredAccount();
+      const activePlan = hasActiveSubscription(account);
+
+      profileAvatar.textContent = getInitials(account && account.name, account && account.email);
+      profileLabel.textContent = account
+        ? (normalizeText(account.name) || normalizeText(account.email) || "Account")
+        : "Account";
+      headerChip.textContent = activePlan && account && account.subscriptionPlan
+        ? `${account.subscriptionPlan} Plan`
+        : "Starter Access";
+    }
+
+    function setLoginMessage(message) {
+      const content = normalizeText(message);
+      loginError.textContent = content;
+      loginError.hidden = !content;
+    }
+
+    function clearLoginMessage() {
+      loginError.hidden = true;
+      loginError.textContent = "";
+    }
+
+    function setAuthMode(mode) {
+      state.authMode = mode === "signup" ? "signup" : "login";
+      loginForm.hidden = state.authMode !== "login";
+      signupForm.hidden = state.authMode !== "signup";
+      showLoginBtn.classList.toggle("active", state.authMode === "login");
+      showSignupBtn.classList.toggle("active", state.authMode === "signup");
+      clearLoginMessage();
+    }
+
+    function closeProfileMenu() {
+      profileDropdown.hidden = true;
+      profileButton.setAttribute("aria-expanded", "false");
+    }
+
+    function openProfileMenu() {
+      profileDropdown.hidden = false;
+      profileButton.setAttribute("aria-expanded", "true");
+    }
+
+    function openAccountModal(view) {
+      state.accountView = view;
+      renderAccountView(view);
+      accountModal.hidden = false;
+      closeProfileMenu();
+    }
+
+    function closeAccountModal() {
+      accountModal.hidden = true;
+    }
+
+    function renderAccountView(view) {
+      const account = getStoredAccount() || {
+        name: "",
+        email: "",
+        subscriptionPlan: "",
+        expiresAt: ""
+      };
+      const activePlan = hasActiveSubscription(account);
+      const currentPlan = activePlan ? account.subscriptionPlan : "No active subscription";
+      const planExpiryText = formatSubscriptionDate(account.expiresAt);
+      state.accountView = view;
+
+      if (view === "subscription") {
+        accountModalKicker.textContent = "Billing";
+        accountModalTitle.textContent = "Subscription";
+        accountModalBody.innerHTML = `
+          <p class="modal-note">Manage pricing from inside your account so the main app stays focused on prompt generation.</p>
+          <div class="plan-offer">Early Access Offer</div>
+          <div class="account-stat">
+            <strong>Current Plan</strong>
+            <span>${escapeHtml(currentPlan)}</span>
+          </div>
+          ${planExpiryText ? `
+          <div class="account-stat">
+            <strong>${activePlan ? "Plan expires on" : "Expired on"}</strong>
+            <span>${escapeHtml(planExpiryText)}</span>
+          </div>` : ""}
+          <div class="plan-grid">
+            <article class="plan-card${activePlan && account.subscriptionPlan === "Basic" ? " featured" : ""}">
+              <span class="plan-badge">Basic Plan</span>
+              <h3>Basic Plan</h3>
+              <div class="plan-price-stack">
+                <div class="plan-price">&#8377;99 <span class="plan-period">/ month</span></div>
+                <div class="plan-meta">
+                  <span class="plan-original">&#8377;149</span>
+                  <span class="plan-discount">33% OFF</span>
+                </div>
+              </div>
+              <ul class="plan-features">
+                <li>Access to all features</li>
+              </ul>
+              <button class="button button-secondary subscribe-action" type="button" data-plan-key="basic" onclick="subscribe('basic')">${activePlan && account.subscriptionPlan === "Basic" ? "Current Plan" : "Subscribe"}</button>
+            </article>
+            <article class="plan-card${activePlan && account.subscriptionPlan === "Pro" ? " featured" : ""}">
+              <span class="plan-badge">Pro Plan</span>
+              <h3>Pro Plan</h3>
+              <div class="plan-price-stack">
+                <div class="plan-price">&#8377;249 <span class="plan-period">/ 3 months</span></div>
+                <div class="plan-meta">
+                  <span class="plan-original">&#8377;399</span>
+                  <span class="plan-discount">38% OFF</span>
+                </div>
+              </div>
+              <ul class="plan-features">
+                <li>Priority access</li>
+                <li>Future updates</li>
+              </ul>
+              <button class="button button-primary subscribe-action" type="button" data-plan-key="pro" onclick="subscribe('pro')">${activePlan && account.subscriptionPlan === "Pro" ? "Current Plan" : "Subscribe"}</button>
+            </article>
+          </div>
+        `;
+        return;
+      }
+
+      if (view === "activity") {
+        const entries = getActivityEntries();
+        accountModalKicker.textContent = "Workspace";
+        accountModalTitle.textContent = "Activity";
+        accountModalBody.innerHTML = entries.length
+          ? `<div class="activity-list">${entries.map((entry) => `
+              <article class="activity-item">
+                <strong>${escapeHtml(entry.message)}</strong>
+                <span>${escapeHtml(formatTimestamp(entry.createdAt))}</span>
+              </article>
+            `).join("")}</div>`
+          : `<div class="empty-message">No activity yet. Actions like generated prompts, profile updates, and subscriptions will appear here.</div>`;
+        return;
+      }
+
+      if (view === "history") {
+        const entries = getHistoryEntries();
+        accountModalKicker.textContent = "Workspace";
+        accountModalTitle.textContent = "History";
+        accountModalBody.innerHTML = entries.length
+          ? `<div class="history-list">${entries.map((entry) => `
+              <article class="history-card">
+                <strong>${escapeHtml(entry.title)}</strong>
+                <div class="history-meta">${escapeHtml(formatTimestamp(entry.createdAt))} | ${escapeHtml(entry.style || "Default")} | ${escapeHtml(entry.format || "Default")}</div>
+                <p>${escapeHtml(entry.idea || "Prompt generated successfully.")}</p>
+              </article>
+            `).join("")}</div>`
+          : `<div class="empty-message">No generated prompt history yet. Generate scenes to start building your workspace history.</div>`;
+        return;
+      }
+
+      accountModalKicker.textContent = "Account";
+      accountModalTitle.textContent = "Profile";
+      accountModalBody.innerHTML = `
+        <p class="modal-note">Update your PromptStudio AI profile details connected to your current Supabase account.</p>
+        <div class="modal-grid">
+          <div class="account-stat">
+            <strong>Name</strong>
+            <span>${escapeHtml(account.name || "Not set")}</span>
+          </div>
+          <div class="account-stat">
+            <strong>Email</strong>
+            <span>${escapeHtml(account.email || "Not set")}</span>
+          </div>
+        </div>
+        <form id="profileForm" class="modal-form">
+          <div class="modal-grid">
+            <div class="modal-field">
+              <label for="profileNameInput">Name</label>
+              <input id="profileNameInput" class="field" type="text" value="${escapeHtml(account.name)}" autocomplete="name" spellcheck="false">
+            </div>
+            <div class="modal-field">
+              <label for="profileEmailInput">Email</label>
+              <input id="profileEmailInput" class="field" type="email" value="${escapeHtml(account.email)}" autocomplete="email" spellcheck="false">
+            </div>
+          </div>
+          <button class="button button-primary" type="submit">Save Profile</button>
+        </form>
+      `;
+    }
+
+    function showApp() {
+      clearLoginMessage();
+      clearError();
+      loginOverlay.style.display = "none";
+      document.body.classList.remove("app-locked");
+      appShell.inert = false;
+      appShell.removeAttribute("inert");
+      appShell.removeAttribute("aria-hidden");
+      updateUserChrome();
+      loginPasswordInput.value = "";
+      signupPasswordInput.value = "";
+    }
+
+    function enablePremium() {
+      document.body.classList.add("premium");
+      console.log("Premium unlocked");
+    }
+
+    function disablePremium() {
+      document.body.classList.remove("premium");
+      console.log("Premium locked");
+    }
+
+    async function checkSubscription() {
+      try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) {
+          disablePremium();
+          return;
+        }
+
+        const { data, error } = await supabaseClient
+          .from("subscriptions")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("status", "active")
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (error) {
+          console.error(error);
+          disablePremium();
+          return;
+        }
+
+        if (data && data.length > 0) {
+          const sub = data[0];
+          const expiryDate = getExpiryDate(sub.expires_at);
+
+          if (expiryDate && expiryDate > new Date()) {
+            saveStoredAccount({
+              email: user.email,
+              subscriptionPlan: normalizeText(sub.plan).toLowerCase() === "pro" ? "Pro" : "Basic",
+              expiresAt: expiryDate.toISOString()
+            });
+            enablePremium();
+          } else {
+            saveStoredAccount({
+              email: user.email,
+              subscriptionPlan: "",
+              expiresAt: normalizeText(sub.expires_at)
+            });
+            disablePremium();
+          }
+        } else {
+          saveStoredAccount({
+            email: user.email,
+            subscriptionPlan: "",
+            expiresAt: ""
+          });
+          disablePremium();
+        }
+      } catch (error) {
+        console.error(error);
+        disablePremium();
+      }
+    }
+
+    function showLoginScreen() {
+      loginOverlay.style.display = "flex";
+      document.body.classList.add("app-locked");
+      appShell.inert = true;
+      appShell.setAttribute("inert", "");
+      appShell.setAttribute("aria-hidden", "true");
+      closeProfileMenu();
+      closeAccountModal();
+      updateUserChrome();
+      loginEmailInput.value = "";
+      loginPasswordInput.value = "";
+      signupNameInput.value = "";
+      signupEmailInput.value = "";
+      signupPasswordInput.value = "";
+      setAuthMode("login");
+      window.setTimeout(() => {
+        loginEmailInput.focus();
+      }, 0);
+    }
+
+    async function signUpUser(email, password) {
+      const { data, error } = await supabaseClient.auth.signUp({
+        email,
+        password
+      });
+
+      if (error) {
+        showError(error.message);
+        return null;
+      }
+
+      alert("Signup successful. Please check your email.");
+      return data;
+    }
+
+    async function loginUser(email, password) {
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        showError(error.message);
+        return null;
+      }
+
+      setCurrentUser(data.user || (data.session && data.session.user));
+      showApp();
+      await checkSubscription();
+      return data;
+    }
+
+    async function checkSession() {
+      try {
+        const { data } = await supabaseClient.auth.getSession();
+
+        if (data.session) {
+          setCurrentUser(data.session.user);
+          showApp();
+          await checkSubscription();
+        } else {
+          setCurrentUser(null);
+          disablePremium();
+          showLoginScreen();
+        }
+      } catch (error) {
+        setCurrentUser(null);
+        disablePremium();
+        showLoginScreen();
+      }
+    }
+
+    async function logoutUser() {
+      const { error } = await supabaseClient.auth.signOut();
+      if (error) {
+        showError(error.message);
+        return;
+      }
+
+      window.location.reload();
+    }
+
+    async function handleLoginSubmit(event) {
+      event.preventDefault();
+
+      clearLoginMessage();
+      clearError();
+
+      const email = normalizeText(loginEmailInput.value).toLowerCase();
+      const password = loginPasswordInput.value;
+
+      if (!email || !password) {
+        setLoginMessage("Please enter your email and password.");
+        loginEmailInput.focus();
+        return;
+      }
+
+      const data = await loginUser(email, password);
+      if (data) {
+        addActivity("Logged in");
+        showToast("Welcome back");
+      }
+    }
+
+    async function handleSignupSubmit(event) {
+      event.preventDefault();
+
+      const name = normalizeText(signupNameInput.value);
+      const email = normalizeText(signupEmailInput.value).toLowerCase();
+      const password = signupPasswordInput.value.trim();
+
+      clearLoginMessage();
+      clearError();
+
+      if (!name || !email || !password) {
+        setLoginMessage("Please fill in all account fields.");
+        return;
+      }
+
+      const data = await signUpUser(email, password);
+      if (!data) {
+        return;
+      }
+
+      saveStoredAccount({
+        name,
+        email
+      });
+      addActivity("Created account");
+      setAuthMode("login");
+      loginEmailInput.value = email;
+      loginPasswordInput.value = "";
+      signupPasswordInput.value = "";
+      showToast("Account created");
+    }
+
+    async function handleProfileSave(event) {
+      event.preventDefault();
+
+      const form = event.target;
+      const name = normalizeText(form.querySelector("#profileNameInput") && form.querySelector("#profileNameInput").value);
+      const email = normalizeText(form.querySelector("#profileEmailInput") && form.querySelector("#profileEmailInput").value).toLowerCase();
+      const account = getStoredAccount();
+
+      if (!state.currentUser || !account) {
+        closeAccountModal();
+        setCurrentUser(null);
+        showLoginScreen();
+        return;
+      }
+
+      if (!name || !email) {
+        showToast("Please complete both profile fields");
+        return;
+      }
+
+      const updates = {
+        data: {
+          ...(state.currentUser.user_metadata || {}),
+          name
+        }
+      };
+
+      if (email !== normalizeText(state.currentUser.email).toLowerCase()) {
+        updates.email = email;
+      }
+
+      const { data, error } = await supabaseClient.auth.updateUser(updates);
+      if (error) {
+        showError(error.message);
+        return;
+      }
+
+      saveStoredAccount({
+        name,
+        email
+      });
+      setCurrentUser((data && data.user) || state.currentUser);
+      addActivity("Updated profile");
+      renderAccountView("profile");
+      showToast(updates.email ? "Profile updated. Check your email to confirm changes." : "Profile updated");
+    }
+
+    async function subscribe(plan) {
+      const selectedKey = normalizeText(plan).toLowerCase();
+      let amount = 0;
+
+      if (selectedKey === "basic") {
+        amount = 9900;
+      } else if (selectedKey === "pro") {
+        amount = 24900;
+      }
+
+      if (!amount) {
+        return;
+      }
+
+      const button = document.querySelector(`.subscribe-action[data-plan-key="${selectedKey}"]`);
+      const originalLabel = button ? button.textContent : "";
+
+      if (button) {
+        button.disabled = true;
+        button.textContent = "Processing...";
+      }
+
+      try {
+        if (typeof Razorpay !== "function") {
+          throw new Error("Razorpay SDK not loaded.");
+        }
+
+        const { data: { user: currentUser } } = await supabaseClient.auth.getUser();
+        if (!currentUser) {
+          throw new Error("User not logged in.");
+        }
+
+        const options = {
+          key: RAZORPAY_KEY,
+          amount,
+          currency: "INR",
+          name: "PromptStudio AI",
+          description: "Subscription Payment",
+          notes: {
+            user_id: currentUser.id,
+            plan: selectedKey
+          },
+          handler: async function (response) {
+            try {
+              const selectedPlan = amount === 9900 ? "Basic" : "Pro";
+              addActivity(`Payment submitted for ${selectedPlan} Plan verification`);
+              alert("Payment received. Your subscription will activate after backend verification.");
+              console.log(response);
+              window.setTimeout(() => {
+                checkSubscription();
+              }, 1500);
+            } catch (error) {
+              console.error(error);
+              alert("Something went wrong. Try again.");
+            } finally {
+              if (button) {
+                button.disabled = false;
+                button.textContent = originalLabel || "Subscribe";
+              }
+            }
+          },
+          modal: {
+            ondismiss: function () {
+              if (button) {
+                button.disabled = false;
+                button.textContent = originalLabel || "Subscribe";
+              }
+            }
+          }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.open();
+      } catch (err) {
+        console.error(err);
+        if (button) {
+          button.disabled = false;
+          button.textContent = originalLabel || "Subscribe";
+        }
+        alert("Something went wrong. Try again.");
+      }
+    }
+
+    function setProviderStatus(message, tone = "idle") {
+      state.activeProvider = message;
+      providerText.textContent = message;
+      providerBar.dataset.state = tone;
+    }
+
+    function resetProviderStatus(apiKey = apiKeyInput.value.trim()) {
+      if (apiKey) {
+        setProviderStatus(`Auto fallback: ${PROVIDER_CHAIN_LABEL}`, "idle");
+        return;
+      }
+
+      setProviderStatus("No API key detected. Ollama will be used if it is running locally.", "idle");
+    }
+
+    function getStylePrompt(style) {
+      const stylePrompts = {
+        Cinematic: "Cinematic visuals with dramatic imagery, immersive mood, polished scene design, and elevated cinematic energy.",
+        Emotional: "Emotional storytelling with personal stakes, vulnerable moments, empathetic dialogue, and scenes designed to make the audience feel deeply invested.",
+        Viral: "Viral content built for scroll-stopping attention, high shareability, bold hooks, punchy beats, and moments that create replay value.",
+        Funny: "Funny content with playful setups, sharp punchlines, surprising turns, and comedic timing that keeps the energy light and engaging.",
+        MrBeast: "MrBeast-style execution with high retention, fast pacing, curiosity gaps, a powerful hook in the first 3 seconds, escalating stakes, and frequent pattern interrupts.",
+        Storytelling: "Storytelling structure that clearly follows hook -> conflict -> resolution, builds emotional engagement, and maintains strong narrative flow from scene to scene.",
+        Faceless: "Faceless YouTube delivery designed around voiceover, stock footage, simple visuals, clear B-roll moments, and no on-camera presence.",
+        Educational: "Educational content with clear explanations, a step-by-step breakdown, value-driven takeaways, and easy-to-follow teaching moments.",
+        Motivational: "Motivational content with an emotional tone, inspiring dialogue, rising momentum, and a strong payoff that leaves the viewer energized.",
+        Horror: "Horror style with suspense, dark atmosphere, slow tension building, ominous details, and a sense of looming danger."
+      };
+
+      return stylePrompts[style] || stylePrompts.Cinematic;
+    }
+
+    function buildDynamicPromptText(tone, format) {
+      return `Create a YouTube video with the following style:\n${getStylePrompt(tone)}\n\nThen continue with the existing cinematic instructions in ${format} format by breaking it into ${SCENE_COUNT} scenes. Each scene must include highly detailed cinematic visual prompt, short engaging dialogue, and editing instructions with cuts, music, transitions, and effects. Make it highly engaging, scroll-stopping, and suitable for modern audiences.`;
+    }
+
+    function showStatus(message) {
+      statusText.textContent = message;
+      statusBar.hidden = false;
+    }
+
+    function hideStatus() {
+      statusBar.hidden = true;
+    }
+
+    function showError(message) {
+      const content = normalizeText(message) || "Something went wrong.";
+      if (loginOverlay.style.display !== "none") {
+        setLoginMessage(content);
+        return;
+      }
+
+      errorText.textContent = content;
+      errorBar.hidden = false;
+    }
+
+    function clearError() {
+      errorBar.hidden = true;
+      errorText.textContent = "";
+    }
+
+    function setLoading(isLoading, message) {
+      const showGenerateLoading = isLoading && normalizeText(message).toLowerCase().includes("generating");
+      state.loading = isLoading;
+      improveBtn.disabled = isLoading;
+      generateBtn.disabled = isLoading;
+      generateBtn.classList.toggle("loading", showGenerateLoading);
+      if (showGenerateLoading) {
+        generateBtn.innerHTML = '<span class="button-spinner" aria-hidden="true"></span><span>Generating...</span>';
+      } else {
+        generateBtn.textContent = generateDefaultLabel;
+      }
+      if (isLoading) {
+        showStatus(message);
+      } else {
+        hideStatus();
+      }
+    }
+
+    function validateInputs() {
+      clearError();
+
+      const apiKey = apiKeyInput.value.trim();
+      const idea = ideaInput.value.trim();
+
+      if (!idea) {
+        showError("Please enter an idea before calling the API.");
+        ideaInput.focus();
+        return null;
+      }
+
+      return { apiKey, idea };
+    }
+
+    function createProviderError(provider, message) {
+      const error = new Error(message);
+      error.provider = provider;
+      return error;
+    }
+
+    function formatErrorMessage(error) {
+      if (error instanceof Error && error.message) {
+        return error.message;
+      }
+
+      return "Unknown error.";
+    }
+
+    function normalizeResponseText(value) {
+      if (typeof value === "string") {
+        return value.trim();
+      }
+
+      if (Array.isArray(value)) {
+        return value.map((item) => normalizeResponseText(item)).filter(Boolean).join("\n").trim();
+      }
+
+      if (!value || typeof value !== "object") {
+        return "";
+      }
+
+      if (typeof value.text === "string") {
+        return value.text.trim();
+      }
+
+      if (typeof value.response === "string") {
+        return value.response.trim();
+      }
+
+      if ("message" in value) {
+        return normalizeResponseText(value.message);
+      }
+
+      if ("content" in value) {
+        return normalizeResponseText(value.content);
+      }
+
+      if ("parts" in value) {
+        return normalizeResponseText(value.parts);
+      }
+
+      return "";
+    }
+
+    function normalizeChatMessages(messages) {
+      return Array.isArray(messages)
+        ? messages
+          .map((message) => ({
+            role: message && ["system", "user", "assistant"].includes(message.role) ? message.role : "user",
+            content: normalizeResponseText(message && message.content)
+          }))
+          .filter((message) => message.content)
+        : [];
+    }
+
+    function messagesToPromptText(messages) {
+      return normalizeChatMessages(messages)
+        .map((message) => `${message.role.toUpperCase()}:\n${message.content}`)
+        .join("\n\n")
+        .trim();
+    }
+
+    function normalizePromptRequest(prompt) {
+      const validate = prompt && typeof prompt === "object" && !Array.isArray(prompt) && typeof prompt.validate === "function"
+        ? prompt.validate
+        : null;
+
+      if (Array.isArray(prompt)) {
+        const messages = normalizeChatMessages(prompt);
+        return {
+          validate,
+          messages,
+          text: messagesToPromptText(messages)
+        };
+      }
+
+      if (prompt && typeof prompt === "object") {
+        const messages = normalizeChatMessages(prompt.messages);
+        const text = normalizeText(prompt.text || prompt.prompt || "") || messagesToPromptText(messages);
+        return {
+          validate,
+          messages: messages.length ? messages : (text ? [{ role: "user", content: text }] : []),
+          text
+        };
+      }
+
+      const text = normalizeText(prompt);
+      return {
+        validate: null,
+        messages: text ? [{ role: "user", content: text }] : [],
+        text
+      };
+    }
+
+    function extractErrorMessage(payload, fallback) {
+      const directMessage = normalizeText(payload && payload.error && payload.error.message)
+        || normalizeText(payload && payload.message)
+        || normalizeText(payload && payload.error);
+
+      return directMessage || fallback;
+    }
+
+    async function fetchWithTimeout(url, options = {}) {
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+      try {
+        return await fetch(url, { ...options, signal: controller.signal });
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+    }
+
+    async function parseResponsePayload(response, providerName) {
+      let rawText = "";
+
+      try {
+        rawText = await response.text();
+      } catch (error) {
+        throw createProviderError(providerName, `${providerName} returned an unreadable response.`);
+      }
+
+      if (!rawText) {
+        return null;
+      }
+
+      try {
+        return JSON.parse(rawText);
+      } catch (error) {
+        return rawText;
+      }
+    }
+
+    async function requestJson(providerName, url, options) {
+      let response;
+
+      try {
+        response = await fetchWithTimeout(url, options);
+      } catch (error) {
+        if (error && error.name === "AbortError") {
+          throw createProviderError(providerName, `${providerName} timed out.`);
+        }
+
+        throw createProviderError(providerName, `${providerName} could not be reached.`);
+      }
+
+      const payload = await parseResponsePayload(response, providerName);
+
+      if (!response.ok) {
+        throw createProviderError(
+          providerName,
+          extractErrorMessage(payload, `${providerName} request failed (${response.status}).`)
+        );
+      }
+
+      if (!payload || typeof payload !== "object") {
+        throw createProviderError(providerName, `${providerName} returned an unreadable response.`);
+      }
+
+      return payload;
+    }
+
+    async function callGemini(apiKey, prompt) {
+      if (!apiKey) {
+        throw createProviderError("Gemini", "No API key was provided for Gemini.");
+      }
+
+      const data = await requestJson(
+        "Gemini",
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": apiKey
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [{ text: prompt }]
+              }
+            ]
+          })
+        }
+      );
+
+      const content = normalizeResponseText(data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts);
+      if (content) {
+        return content;
+      }
+
+      const blockReason = normalizeText(data && data.promptFeedback && data.promptFeedback.blockReason);
+      if (blockReason) {
+        throw createProviderError("Gemini", `Gemini blocked the request (${blockReason}).`);
+      }
+
+      throw createProviderError("Gemini", "Gemini did not return any content.");
+    }
+
+    async function callOpenRouter(apiKey, messages) {
+      if (!apiKey) {
+        throw createProviderError("OpenRouter", "No API key was provided for OpenRouter.");
+      }
+
+      const headers = {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      };
+
+      if (window.location.protocol.startsWith("http")) {
+        headers["HTTP-Referer"] = window.location.href;
+        headers["X-Title"] = document.title;
+      }
+
+      const data = await requestJson(
+        "OpenRouter",
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            model: OPENROUTER_MODEL,
+            messages
+          })
+        }
+      );
+
+      const content = normalizeResponseText(data && data.choices && data.choices[0] && data.choices[0].message);
+      if (content) {
+        return content;
+      }
+
+      throw createProviderError("OpenRouter", "OpenRouter did not return any content.");
+    }
+
+    async function callGroq(apiKey, messages) {
+      if (!apiKey) {
+        throw createProviderError("Groq", "No API key was provided for Groq.");
+      }
+
+      const data = await requestJson(
+        "Groq",
+        "https://api.groq.com/openai/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: GROQ_MODEL,
+            messages
+          })
+        }
+      );
+
+      const content = normalizeResponseText(data && data.choices && data.choices[0] && data.choices[0].message);
+      if (content) {
+        return content;
+      }
+
+      throw createProviderError("Groq", "Groq did not return any content.");
+    }
+
+    async function getOllamaModel() {
+      if (state.ollamaModel) {
+        return state.ollamaModel;
+      }
+
+      const data = await requestJson("Ollama", `${OLLAMA_BASE_URL}/tags`, {
+        method: "GET"
+      });
+
+      const models = Array.isArray(data && data.models) ? data.models : [];
+      if (!models.length) {
+        throw createProviderError("Ollama", "Ollama is running but no local models are installed.");
+      }
+
+      const preferredFamilies = ["qwen3", "gemma3", "llama3.2", "gpt-oss", "mistral", "phi"];
+      const matchedModel = preferredFamilies
+        .map((family) => models.find((model) => normalizeText(model && (model.model || model.name)).toLowerCase().includes(family)))
+        .find(Boolean);
+
+      const selectedModel = normalizeText((matchedModel || models[0]).model || (matchedModel || models[0]).name);
+      if (!selectedModel) {
+        throw createProviderError("Ollama", "Ollama did not report a usable model name.");
+      }
+
+      state.ollamaModel = selectedModel;
+      return selectedModel;
+    }
+
+    async function callOllama(prompt) {
+      const model = await getOllamaModel();
+      const data = await requestJson(
+        "Ollama",
+        `${OLLAMA_BASE_URL}/generate`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model,
+            prompt,
+            stream: false
+          })
+        }
+      );
+
+      const content = normalizeResponseText(data && data.response);
+      if (content) {
+        return content;
+      }
+
+      throw createProviderError("Ollama", "Ollama did not return any content.");
+    }
+
+    async function ensurePromptGenerationAccess(apiKey) {
+      if (apiKey) {
+        return true;
+      }
+
+      try {
+        await getOllamaModel();
+        setProviderStatus(`Using Ollama (${state.ollamaModel})`, "active");
+        return true;
+      } catch (error) {
+        showError("Please enter your API key before generating prompts.");
+        updateProgress(1);
+        triggerApiKeyErrorState();
+        apiKeyInput.focus();
+        scheduleSectionScroll(apiSection);
+        setProviderStatus("API key required or start Ollama locally", "error");
+        return false;
+      }
+    }
+
+    async function callAI(apiKey, prompt) {
+      const request = normalizePromptRequest(prompt);
+      if (!request.text || !request.messages.length) {
+        throw new Error("The prompt was empty.");
+      }
+
+      const providers = [];
+      if (apiKey) {
+        providers.push(
+          {
+            name: "Gemini",
+            run: () => callGemini(apiKey, request.text)
+          },
+          {
+            name: "OpenRouter",
+            run: () => callOpenRouter(apiKey, request.messages)
+          },
+          {
+            name: "Groq",
+            run: () => callGroq(apiKey, request.messages)
+          }
+        );
+      }
+
+      providers.push({
+        name: "Ollama",
+        run: () => callOllama(request.text)
+      });
+
+      const failures = [];
+
+      for (const provider of providers) {
+        setProviderStatus(`Trying ${provider.name}...`, "idle");
+
+        try {
+          const content = normalizeResponseText(await provider.run());
+
+          if (!content) {
+            throw createProviderError(provider.name, `${provider.name} returned an empty response.`);
+          }
+
+          if (request.validate) {
+            request.validate(content);
+          }
+
+          const providerLabel = provider.name === "Ollama" && state.ollamaModel
+            ? `Using Ollama (${state.ollamaModel})`
+            : `Using ${provider.name}`;
+
+          setProviderStatus(providerLabel, "active");
+          return content;
+        } catch (error) {
+          failures.push(`${provider.name}: ${formatErrorMessage(error)}`);
+        }
+      }
+
+      setProviderStatus("All providers failed", "error");
+      throw new Error(`All providers failed. ${failures.join(" ")}`);
+    }
+
+    function buildImproveMessages(idea, tone, format) {
+      return [
+        {
+          role: "system",
+          content: "You are a top YouTube creative strategist. Rewrite rough ideas into sharper, more emotional, more engaging concepts that feel modern, clickable, specific, and native to the requested YouTube style. Return only the improved idea as plain text with no bullet points and no quotation marks."
+        },
+        {
+          role: "user",
+          content: `Improve this YouTube idea for a ${tone} video in ${format} format.\n\nStyle instructions:\n${getStylePrompt(tone)}\n\nMake it more engaging, emotional, viral, and creator-friendly while keeping the original core concept clear.\n\nOriginal idea:\n${idea}`
+        }
+      ];
+    }
+
+    function buildSceneMessages(idea, tone, format) {
+      return [
+        {
+          role: "system",
+          content: "You are an elite cinematic YouTube prompt generator. Adapt the output strongly to the requested content style while preserving the requested JSON format. Return only valid JSON. Do not wrap the JSON in markdown. The JSON object must contain a string field named title and an array field named scenes. Each scene object must contain exactly these fields: scene_number, visual_prompt, dialogue, editing."
+        },
+        {
+          role: "user",
+          content: `${buildDynamicPromptText(tone, format)}\n\nUse this idea as the core concept:\n${idea}\n\nStyle emphasis:\n- Let the selected style clearly shape pacing, dialogue, visual choices, hook quality, and scene progression\n- Keep the chosen style consistent across all scenes\n\nRequirements:\n- Return exactly ${SCENE_COUNT} scenes\n- Keep dialogue short, punchy, and engaging\n- Make the visual prompts vivid, cinematic, and specific\n- Make editing instructions practical for a YouTube creator\n- Keep the output format exactly the same JSON schema\n- Use this JSON structure exactly:\n{\n  "title": "",\n  "scenes": [\n    {\n      "scene_number": 1,\n      "visual_prompt": "",\n      "dialogue": "",\n      "editing": ""\n    }\n  ]\n}`
+        }
+      ];
+    }
+
+    function cleanJsonString(rawText) {
+      return rawText
+        .trim()
+        .replace(/^```json\s*/i, "")
+        .replace(/^```\s*/i, "")
+        .replace(/\s*```$/i, "")
+        .trim();
+    }
+
+    function normalizeText(value) {
+      return typeof value === "string" ? value.trim() : "";
+    }
+
+    function parseScenePayload(rawText) {
+      const cleaned = cleanJsonString(rawText);
+      let parsed;
+
+      try {
+        parsed = JSON.parse(cleaned);
+      } catch (error) {
+        throw new Error("The AI returned invalid JSON. Please try again.");
+      }
+
+      if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.scenes)) {
+        throw new Error("The AI response was missing the expected scenes array.");
+      }
+
+      const scenes = parsed.scenes.map((scene, index) => ({
+        scene_number: Number(scene && scene.scene_number) || index + 1,
+        visual_prompt: normalizeText(scene && scene.visual_prompt),
+        dialogue: normalizeText(scene && scene.dialogue),
+        editing: normalizeText(scene && scene.editing)
+      })).filter((scene) => scene.visual_prompt || scene.dialogue || scene.editing);
+
+      if (!scenes.length) {
+        throw new Error("The AI response did not include any usable scenes.");
+      }
+
+      return {
+        title: normalizeText(parsed.title) || `${state.tone} ${state.format} Scene Plan`,
+        scenes
+      };
+    }
+
+    function clearResults() {
+      state.scenesPayload = null;
+      sceneGrid.innerHTML = "";
+      sceneGrid.hidden = true;
+      resultsTopbar.hidden = true;
+      emptyState.hidden = false;
+      resultsTitle.textContent = "Your cinematic scene map";
+      resultsSection.classList.remove("show-output");
+    }
+
+    function createCopyButton(label, onClick, className = "copy-button") {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = className;
+      button.textContent = label;
+      button.addEventListener("click", onClick);
+      return button;
+    }
+
+    function createSceneSection(title, content) {
+      const section = document.createElement("section");
+      section.className = "scene-section";
+
+      const header = document.createElement("div");
+      header.className = "section-header";
+
+      const heading = document.createElement("h3");
+      heading.textContent = title;
+
+      const copy = createCopyButton("Copy", async (event) => {
+        await copyText(content, event.currentTarget, `${title} copied`);
+      });
+
+      header.appendChild(heading);
+      header.appendChild(copy);
+
+      const paragraph = document.createElement("p");
+      paragraph.className = "scene-text";
+      paragraph.textContent = content || "No content returned.";
+
+      section.appendChild(header);
+      section.appendChild(paragraph);
+      return section;
+    }
+
+    function renderResults(payload) {
+      state.scenesPayload = payload;
+      sceneGrid.innerHTML = "";
+      resultsTitle.textContent = payload.title;
+      resultsTopbar.hidden = false;
+      emptyState.hidden = true;
+      sceneGrid.hidden = false;
+
+      payload.scenes.forEach((scene, index) => {
+        const card = document.createElement("article");
+        card.className = "scene-card";
+
+        const header = document.createElement("div");
+        header.className = "scene-header";
+
+        const chip = document.createElement("div");
+        chip.className = "scene-chip";
+        chip.textContent = `Scene ${scene.scene_number || index + 1}`;
+
+        const fullCopy = createCopyButton("Copy Full Scene", async (event) => {
+          await copyText(formatSceneForCopy(scene), event.currentTarget, `Scene ${scene.scene_number || index + 1} copied`);
+        }, "ghost-button");
+
+        header.appendChild(chip);
+        header.appendChild(fullCopy);
+
+        card.appendChild(header);
+        card.appendChild(createSceneSection("Visual Prompt", scene.visual_prompt));
+        card.appendChild(createSceneSection("Dialogue", scene.dialogue));
+        card.appendChild(createSceneSection("Editing Instructions", scene.editing));
+
+        sceneGrid.appendChild(card);
+      });
+
+      resultsSection.classList.remove("show-output");
+      void resultsSection.offsetWidth;
+      resultsSection.classList.add("show-output");
+      updateProgress(5);
+      scheduleSectionScroll(resultsSection);
+    }
+
+    function formatSceneForCopy(scene) {
+      const number = scene.scene_number || 1;
+      return [
+        `Scene ${number}`,
+        `Visual Prompt: ${scene.visual_prompt || ""}`,
+        `Dialogue: ${scene.dialogue || ""}`,
+        `Editing Instructions: ${scene.editing || ""}`
+      ].join("\n");
+    }
+
+    function formatAllScenesForCopy() {
+      if (!state.scenesPayload) {
+        return "";
+      }
+
+      const title = state.scenesPayload.title ? `${state.scenesPayload.title}\n` : "";
+      const scenes = state.scenesPayload.scenes.map(formatSceneForCopy).join("\n\n");
+      return `${title}${scenes}`.trim();
+    }
+
+    async function copyText(text, trigger, successMessage) {
+      if (!text) {
+        showError("There was no content available to copy.");
+        return;
+      }
+
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          const helper = document.createElement("textarea");
+          helper.value = text;
+          helper.setAttribute("readonly", "");
+          helper.style.position = "absolute";
+          helper.style.left = "-9999px";
+          document.body.appendChild(helper);
+          helper.select();
+          document.execCommand("copy");
+          document.body.removeChild(helper);
+        }
+
+        if (trigger) {
+          const originalLabel = trigger.textContent;
+          trigger.textContent = "Copied";
+          trigger.classList.add("copied");
+          window.setTimeout(() => {
+            trigger.textContent = originalLabel;
+            trigger.classList.remove("copied");
+          }, 1400);
+        }
+
+        showToast(successMessage || "Copied");
+      } catch (error) {
+        showError("Copy failed. Please try again.");
+      }
+    }
+
+    function showToast(message) {
+      const toast = document.createElement("div");
+      toast.className = "toast";
+      toast.textContent = message;
+      toastWrap.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.classList.add("show");
+      });
+
+      window.setTimeout(() => {
+        toast.classList.remove("show");
+        window.setTimeout(() => {
+          toast.remove();
+        }, 260);
+      }, 1800);
+    }
+
+    async function handleImproveIdea() {
+      const values = validateInputs();
+      if (!values) {
+        return;
+      }
+
+      setLoading(true, "Improving your idea...");
+
+      try {
+        const messages = buildImproveMessages(values.idea, state.tone, state.format);
+        const content = await callAI(values.apiKey, { messages });
+
+        const improvedIdea = normalizeText(content);
+
+        if (!improvedIdea) {
+          throw new Error("The API returned an empty improved idea.");
+        }
+
+        ideaInput.value = improvedIdea;
+        addActivity("Improved idea");
+        showToast("Idea improved");
+      } catch (error) {
+        showError(error instanceof Error ? error.message : "Failed to improve the idea.");
+      } finally {
+        setLoading(false, "");
+      }
+    }
+
+    async function handleGenerateScenes() {
+      const values = validateInputs();
+      if (!values) {
+        return;
+      }
+
+      if (!(await ensurePromptGenerationAccess(values.apiKey))) {
+        return;
+      }
+
+      clearError();
+      clearResults();
+      state.stepFlow.generate = true;
+      updateProgress(4);
+      scheduleSectionScroll(resultsSection);
+      setLoading(true, "Generating cinematic scenes...");
+
+      try {
+        const messages = buildSceneMessages(values.idea, state.tone, state.format);
+        const content = await callAI(values.apiKey, {
+          messages,
+          validate: (rawContent) => {
+            parseScenePayload(rawContent);
+          }
+        });
+
+        const payload = parseScenePayload(content);
+        renderResults(payload);
+        addActivity("Generated prompts");
+        addHistoryEntry({
+          title: payload.title,
+          idea: values.idea,
+          style: state.tone,
+          format: state.format
+        });
+        showToast("Scenes generated");
+      } catch (error) {
+        clearResults();
+        showError(error instanceof Error ? error.message : "Failed to generate scenes.");
+      } finally {
+        setLoading(false, "");
+      }
+    }
+
+    improveBtn.addEventListener("click", handleImproveIdea);
+    generateBtn.addEventListener("click", handleGenerateScenes);
+    showLoginBtn.addEventListener("click", () => {
+      setAuthMode("login");
+      loginEmailInput.focus();
+    });
+    showSignupBtn.addEventListener("click", () => {
+      setAuthMode("signup");
+      signupNameInput.focus();
+    });
+    loginForm.addEventListener("submit", handleLoginSubmit);
+    signupForm.addEventListener("submit", handleSignupSubmit);
+    [loginEmailInput, loginPasswordInput, signupNameInput, signupEmailInput, signupPasswordInput].forEach((input) => {
+      input.addEventListener("input", clearLoginMessage);
+    });
+    profileButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      if (profileDropdown.hidden) {
+        openProfileMenu();
+      } else {
+        closeProfileMenu();
+      }
+    });
+    profileDropdown.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+    profileMenuBtn.addEventListener("click", () => {
+      openAccountModal("profile");
+    });
+    subscriptionMenuBtn.addEventListener("click", () => {
+      openAccountModal("subscription");
+    });
+    activityBtn.addEventListener("click", () => {
+      openAccountModal("activity");
+    });
+    historyBtn.addEventListener("click", () => {
+      openAccountModal("history");
+    });
+    logoutBtn.addEventListener("click", logoutUser);
+    closeAccountModalBtn.addEventListener("click", closeAccountModal);
+    accountModal.addEventListener("click", (event) => {
+      if (event.target === accountModal) {
+        closeAccountModal();
+      }
+    });
+    accountModalBody.addEventListener("submit", (event) => {
+      if (event.target && event.target.id === "profileForm") {
+        handleProfileSave(event);
+      }
+    });
+    apiKeyInput.addEventListener("input", () => {
+      apiKeyInput.classList.remove("shake");
+      markApiKeyState();
+      if (!state.loading) {
+        resetProviderStatus(apiKeyInput.value.trim());
+      }
+    });
+    ideaInput.addEventListener("input", () => {
+      showIdeaTypingState();
+      if (ideaInput.value.trim() && !state.stepFlow.idea) {
+        state.stepFlow.idea = true;
+        updateProgress(3);
+        scheduleSectionScroll(generateSection);
+      }
+    });
+    document.addEventListener("click", (event) => {
+      if (!profileMenuContainsTarget(event.target)) {
+        closeProfileMenu();
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        if (!accountModal.hidden) {
+          closeAccountModal();
+        } else {
+          closeProfileMenu();
+        }
+      }
+    });
+    copyAllBtn.addEventListener("click", async (event) => {
+      const allScenes = formatAllScenesForCopy();
+      await copyText(allScenes, event.currentTarget, "All scenes copied");
+    });
+
+    function profileMenuContainsTarget(target) {
+      return profileButton.contains(target) || profileDropdown.contains(target);
+    }
+
+    initializeOptionGroups();
+    updatePromptPreview();
+    updateProgress(currentStep);
+    markApiKeyState(false);
+    resetProviderStatus();
+    updateUserChrome();
+    checkSession();
+  </script>
+</body>
+</html>
